@@ -278,20 +278,52 @@ const saveReservation = async (reservationData) => {
                        firstItem.status === 'True' || firstItem.status === true;
       
       // rez_kayit_no kontrolü - 0 ise rezervasyon kaydedilmemiş demektir
-      const rezKayitNo = firstItem.rez_kayit_no || firstItem.Rez_Kayit_No || firstItem.rezKayitNo;
-      if (rezKayitNo === '0' || rezKayitNo === 0) {
-        const errorMsg = firstItem.error || firstItem.Error || firstItem.message || firstItem.Message || 
-                        firstItem.hata || firstItem.Hata || 
-                        'Rezervasyon kaydedilemedi (rez_kayit_no: 0). Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
+      const rezKayitNo = firstItem.rez_kayit_no || firstItem.Rez_Kayit_No || firstItem.rezKayitNo || firstItem.rez_kayitNo;
+      if (rezKayitNo === '0' || rezKayitNo === 0 || rezKayitNo === null || rezKayitNo === undefined || rezKayitNo === '') {
+        // Tüm hata mesajlarını topla
+        const errorMessages = [
+          firstItem.error,
+          firstItem.Error,
+          firstItem.message,
+          firstItem.Message,
+          firstItem.hata,
+          firstItem.Hata,
+          firstItem.Mesaj,
+          firstItem.mesaj,
+          firstItem.ErrorMessage,
+          firstItem.errorMessage
+        ].filter(msg => msg && msg.trim() !== '');
+        
+        const errorMsg = errorMessages.length > 0 
+          ? errorMessages.join('. ')
+          : 'Rezervasyon kaydedilemedi (rez_kayit_no: 0). Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
+        
         console.error('❌ External API rezervasyon kaydedilemedi (rez_kayit_no: 0):', {
           success: firstItem.success,
+          Success: firstItem.Success,
           Status: firstItem.Status,
-          rez_id: firstItem.rez_id,
+          status: firstItem.status,
+          rez_id: firstItem.rez_id || firstItem.Rez_ID,
           rez_kayit_no: rezKayitNo,
           error: errorMsg,
-          fullResponse: firstItem
+          allErrorFields: errorMessages,
+          fullResponse: firstItem,
+          sentParams: {
+            Pickup_ID: params.Pickup_ID,
+            Drop_Off_ID: params.Drop_Off_ID,
+            Cars_Park_ID: params.Cars_Park_ID,
+            Group_ID: params.Group_ID,
+            Rez_ID: params.Rez_ID,
+            Your_Rent_Price: params.Your_Rent_Price,
+            Pickup_Hour: params.Pickup_Hour,
+            Drop_Off_Hour: params.Drop_Off_Hour,
+            Name: params.Name,
+            SurName: params.SurName
+          }
         });
-        throw new Error(`External API Rezervasyon Hatası: ${errorMsg}`);
+        
+        // Gönderilen parametreleri de hata mesajına ekle (debug için)
+        throw new Error(`External API Rezervasyon Hatası: ${errorMsg}. Gönderilen parametreler: Pickup_ID=${params.Pickup_ID}, Drop_Off_ID=${params.Drop_Off_ID}, Cars_Park_ID=${params.Cars_Park_ID}, Group_ID=${params.Group_ID}, Rez_ID=${params.Rez_ID}, Your_Rent_Price=${params.Your_Rent_Price}, Pickup_Hour=${params.Pickup_Hour}, Drop_Off_Hour=${params.Drop_Off_Hour}`);
       }
       
       // success: "False" kontrolü
