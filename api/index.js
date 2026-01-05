@@ -33,10 +33,25 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// Root path handler (test için)
+app.get('/', (req, res) => {
+  res.json({ message: 'Backend API çalışıyor', timestamp: new Date().toISOString() });
+});
+
+// Routes - Vercel'de /api/* path'i zaten rewrite edilmiş, bu yüzden sadece /cars kullan
 app.use('/api/cars', require('../routes/cars'));
 app.use('/api/reservations', require('../routes/reservations'));
 app.use('/api/auth', require('../routes/auth'));
+
+// Debug: Tüm gelen istekleri logla
+app.use((req, res, next) => {
+  console.log(`🔍 Incoming request: ${req.method} ${req.url}`, {
+    path: req.path,
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl
+  });
+  next();
+});
 
 // Chrome DevTools .well-known isteğini sessizce yok say
 app.get('/.well-known/*', (req, res) => {
