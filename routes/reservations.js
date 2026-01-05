@@ -214,24 +214,57 @@ router.post('/', async (req, res) => {
           response: externalReservation
         });
 
-        if (externalReservation && externalReservation.rez_id) {
-          externalRezId = externalReservation.rez_id;
+        // External API yanıtını kontrol et
+        let externalRezIdFromResponse = null;
+        let externalIdFromResponse = null;
+        
+        if (Array.isArray(externalReservation) && externalReservation.length > 0) {
+          const firstItem = externalReservation[0];
+          externalRezIdFromResponse = firstItem.rez_id || firstItem.Rez_ID || firstItem.rezId;
+          externalIdFromResponse = firstItem.ID || firstItem.id;
+          
+          // rez_kayit_no kontrolü
+          const rezKayitNo = firstItem.rez_kayit_no || firstItem.Rez_Kayit_No || firstItem.rezKayitNo;
+          if (rezKayitNo === '0' || rezKayitNo === 0) {
+            console.error('❌ External API rezervasyon kaydedilemedi (rez_kayit_no: 0)');
+            console.error('❌ Rezervasyon türevde görünmeyecek!');
+            throw new Error('Rezervasyon external API\'de kaydedilemedi. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
+          }
+          
+          console.log('✅ External API rezervasyon yanıtı:', {
+            rez_id: externalRezIdFromResponse,
+            rez_kayit_no: rezKayitNo,
+            ID: externalIdFromResponse,
+            success: firstItem.success,
+            Status: firstItem.Status
+          });
+        } else if (typeof externalReservation === 'object' && externalReservation !== null) {
+          externalRezIdFromResponse = externalReservation.rez_id || externalReservation.Rez_ID || externalReservation.rezId;
+          externalIdFromResponse = externalReservation.ID || externalReservation.id;
+        }
+        
+        if (externalRezIdFromResponse) {
+          externalRezId = externalRezIdFromResponse;
+          externalId = externalIdFromResponse;
           
           // Rezervasyon başarılı olduysa, aracı cache'e ekle
           if (rezId && carsParkId) {
             addReservedCar(rezId, carsParkId, pickupDate, dropoffDate);
-            console.log(`Araç rezerve edildi: rezId=${rezId}, carsParkId=${carsParkId}`);
+            console.log(`✅ Araç rezerve edildi: rezId=${rezId}, carsParkId=${carsParkId}`);
+            console.log(`✅ External rez_id: ${externalRezId}, ID: ${externalId}`);
           }
         } else {
           // Boş yanıt veya beklenmedik format
           if (!externalReservation || 
               (typeof externalReservation === 'string' && externalReservation.trim() === '') ||
               (Array.isArray(externalReservation) && externalReservation.length === 0)) {
-            console.warn('⚠️ External API boş yanıt döndü');
-            console.warn('⚠️ Rezervasyon gönderildi ama onay yanıtı alınamadı');
-            console.warn('⚠️ Rezervasyon türevde görünmeyebilir, lütfen kontrol edin');
+            console.error('❌ External API boş yanıt döndü');
+            console.error('❌ Rezervasyon gönderildi ama onay yanıtı alınamadı');
+            console.error('❌ Rezervasyon türevde görünmeyebilir!');
+            throw new Error('External API\'den rezervasyon onayı alınamadı. Rezervasyon türevde görünmeyebilir. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
           } else {
-            console.warn('⚠️ External API rezervasyon yanıtı beklenmedik format:', externalReservation);
+            console.error('❌ External API rezervasyon yanıtı beklenmedik format:', externalReservation);
+            throw new Error('External API\'den beklenmedik yanıt formatı. Rezervasyon türevde görünmeyebilir. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
           }
         }
       } catch (apiError) {

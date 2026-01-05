@@ -213,36 +213,80 @@ const saveReservation = async (reservationData) => {
     
     console.log('📥 External API rezervasyon yanıtı:', JSON.stringify(response.data, null, 2));
     
-    // Hata kontrolü
+    // Hata kontrolü - DETAYLI
     if (Array.isArray(response.data) && response.data.length > 0) {
       const firstItem = response.data[0];
       
+      // TÜM alanları logla
+      console.log('📥 External API yanıt detayları:', {
+        success: firstItem.success,
+        Success: firstItem.Success,
+        status: firstItem.status,
+        Status: firstItem.Status,
+        rez_id: firstItem.rez_id,
+        Rez_ID: firstItem.Rez_ID,
+        rez_kayit_no: firstItem.rez_kayit_no,
+        Rez_Kayit_No: firstItem.Rez_Kayit_No,
+        ID: firstItem.ID,
+        id: firstItem.id,
+        error: firstItem.error,
+        Error: firstItem.Error,
+        message: firstItem.message,
+        Message: firstItem.Message,
+        hata: firstItem.hata,
+        Hata: firstItem.Hata,
+        fullResponse: firstItem
+      });
+      
       // success: "True" veya Status: "True" kontrolü
       const isSuccess = firstItem.success === 'True' || firstItem.success === true || 
+                       firstItem.Success === 'True' || firstItem.Success === true ||
                        firstItem.Status === 'True' || firstItem.Status === true ||
                        firstItem.status === 'True' || firstItem.status === true;
       
-      // success: "False" kontrolü - ama rez_id varsa rezervasyon yapılmış olabilir
-      if (firstItem.success === 'False' || firstItem.success === false) {
-        // Eğer rez_id varsa, rezervasyon yapılmış olabilir (sadece kayıt numarası 0 olabilir)
-        if (firstItem.rez_id) {
-          console.warn('⚠️ External API success: False ama rez_id var:', firstItem.rez_id);
-          console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir ama kayıt numarası 0');
-          // Rezervasyon yapılmış gibi devam et, ama uyar
-          console.warn('⚠️ Rezervasyon türevde görünmeyebilir, lütfen kontrol edin');
+      // rez_kayit_no kontrolü - 0 ise rezervasyon kaydedilmemiş demektir
+      const rezKayitNo = firstItem.rez_kayit_no || firstItem.Rez_Kayit_No || firstItem.rezKayitNo;
+      if (rezKayitNo === '0' || rezKayitNo === 0) {
+        const errorMsg = firstItem.error || firstItem.Error || firstItem.message || firstItem.Message || 
+                        firstItem.hata || firstItem.Hata || 
+                        'Rezervasyon kaydedilemedi (rez_kayit_no: 0). Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
+        console.error('❌ External API rezervasyon kaydedilemedi (rez_kayit_no: 0):', {
+          success: firstItem.success,
+          Status: firstItem.Status,
+          rez_id: firstItem.rez_id,
+          rez_kayit_no: rezKayitNo,
+          error: errorMsg,
+          fullResponse: firstItem
+        });
+        throw new Error(`External API Rezervasyon Hatası: ${errorMsg}`);
+      }
+      
+      // success: "False" kontrolü
+      if (firstItem.success === 'False' || firstItem.success === false || 
+          firstItem.Success === 'False' || firstItem.Success === false) {
+        // Eğer rez_id veya rez_kayit_no varsa, rezervasyon yapılmış olabilir
+        const rezId = firstItem.rez_id || firstItem.Rez_ID || firstItem.rezId;
+        if (rezId && rezKayitNo && rezKayitNo !== '0' && rezKayitNo !== 0) {
+          console.warn('⚠️ External API success: False ama rez_id ve rez_kayit_no var:', {
+            rez_id: rezId,
+            rez_kayit_no: rezKayitNo
+          });
+          console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir');
+          // Rezervasyon yapılmış gibi devam et
         } else {
           // Hata mesajını bul
           const errorMsg = firstItem.error || firstItem.Error || firstItem.message || firstItem.Message || 
                           firstItem.hata || firstItem.Hata || 
-                          (firstItem.rez_kayit_no === '0' ? 'Rezervasyon kaydedilemedi (rez_kayit_no: 0). Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35' : 'Bilinmeyen hata');
+                          'Rezervasyon kaydedilemedi. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
           console.error('❌ External API rezervasyon hatası detayları:', {
             success: firstItem.success,
             Status: firstItem.Status,
             rez_id: firstItem.rez_id,
-            rez_kayit_no: firstItem.rez_kayit_no,
+            rez_kayit_no: rezKayitNo,
             error: errorMsg,
             fullResponse: firstItem
           });
+  
           throw new Error(`External API Rezervasyon Hatası: ${errorMsg}`);
         }
       }
@@ -250,15 +294,22 @@ const saveReservation = async (reservationData) => {
       // Başarılı ise logla
       if (isSuccess) {
         console.log('✅ External API rezervasyon başarılı:', {
-          rez_id: firstItem.rez_id,
-          rez_kayit_no: firstItem.rez_kayit_no,
-          ID: firstItem.ID,
-          Status: firstItem.Status || firstItem.status
+          rez_id: firstItem.rez_id || firstItem.Rez_ID,
+          rez_kayit_no: rezKayitNo,
+          ID: firstItem.ID || firstItem.id,
+          Status: firstItem.Status || firstItem.status || firstItem.Success
         });
       }
     } else if (typeof response.data === 'object' && response.data !== null) {
       // Array değilse, direkt obje olabilir
       console.log('📥 External API yanıtı obje formatında:', response.data);
+      
+      // Obje formatında da hata kontrolü yap
+      if (response.data.success === 'False' || response.data.success === false) {
+        const errorMsg = response.data.error || response.data.Error || 
+                        'Rezervasyon kaydedilemedi. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
+        throw new Error(`External API Rezervasyon Hatası: ${errorMsg}`);
+      }
     }
     
     return response.data;
