@@ -105,5 +105,6 @@ if (process.env.VERCEL !== '1') {
 }
 
 // Vercel serverless function export
+// Vercel'de tüm istekler bu function'a yönlendirilir
 module.exports = app;
 
