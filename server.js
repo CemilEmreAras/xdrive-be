@@ -11,8 +11,9 @@ const corsOptions = {
     // Vercel production URL'leri
     const allowedOrigins = [
       'https://xdrive-e04d1acw9-cemil-emre-aras-projects.vercel.app', // Backend URL
-      'https://xdrive-fe-git-main-cemil-emre-aras-projects.vercel.app', // Frontend URL
-      'https://xdrive-fe.vercel.app', // Production frontend URL (eğer varsa)
+      'https://xdrive-fe-git-main-cemil-emre-aras-projects.vercel.app', // Frontend URL (git branch)
+      'https://xdrive-fe.vercel.app', // Production frontend URL
+      'https://xdrive-fe-*.vercel.app', // Tüm frontend preview URL'leri
       'https://*.vercel.app', // Tüm Vercel subdomain'leri
       'http://localhost:3000',
       'http://localhost:3001'
