@@ -33,24 +33,43 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Root path handler (test için)
-app.get('/', (req, res) => {
-  res.json({ message: 'Backend API çalışıyor', timestamp: new Date().toISOString() });
-});
-
-// Routes - Vercel'de /api/* path'i zaten rewrite edilmiş, bu yüzden sadece /cars kullan
-app.use('/api/cars', require('../routes/cars'));
-app.use('/api/reservations', require('../routes/reservations'));
-app.use('/api/auth', require('../routes/auth'));
-
-// Debug: Tüm gelen istekleri logla
+// Debug: Tüm gelen istekleri logla (EN ÜSTTE - route'lardan önce)
 app.use((req, res, next) => {
   console.log(`🔍 Incoming request: ${req.method} ${req.url}`, {
     path: req.path,
     originalUrl: req.originalUrl,
-    baseUrl: req.baseUrl
+    baseUrl: req.baseUrl,
+    url: req.url
   });
   next();
+});
+
+// Root path handler (test için)
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Backend API çalışıyor', 
+    timestamp: new Date().toISOString(),
+    path: req.path,
+    url: req.url
+  });
+});
+
+// Routes - Vercel'de /api/* path'i zaten rewrite edilmiş
+// Ama Express route'ları /api/cars olarak tanımlı, bu yüzden path'i koruyoruz
+app.use('/api/cars', require('../routes/cars'));
+app.use('/api/reservations', require('../routes/reservations'));
+app.use('/api/auth', require('../routes/auth'));
+
+// 404 handler - tüm route'lardan sonra
+app.use((req, res) => {
+  console.error(`❌ 404 - Route bulunamadı: ${req.method} ${req.url}`);
+  res.status(404).json({ 
+    error: 'Route bulunamadı',
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    originalUrl: req.originalUrl
+  });
 });
 
 // Chrome DevTools .well-known isteğini sessizce yok say
