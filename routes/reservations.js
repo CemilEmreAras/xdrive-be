@@ -349,8 +349,24 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(reservationResponse);
   } catch (error) {
-    console.error('Rezervasyon oluşturma hatası:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Rezervasyon oluşturma hatası:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    
+    // Detaylı hata mesajı
+    let errorMessage = error.message || 'Rezervasyon oluşturulurken bir hata oluştu';
+    let statusCode = 500;
+    
+    // Eğer external API hatası ise, 400 döndür (client error)
+    if (error.message && error.message.includes('External API')) {
+      statusCode = 400;
+    }
+    
+    res.status(statusCode).json({ 
+      error: errorMessage,
+      details: error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : undefined
+    });
   }
 });
 
