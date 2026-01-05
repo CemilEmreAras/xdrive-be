@@ -269,15 +269,18 @@ router.post('/', async (req, res) => {
           }
         }
       } catch (apiError) {
-        console.error('❌ External API rezervasyon hatası:', apiError.message);
+        console.error('⚠️ External API rezervasyon hatası:', apiError.message);
         if (apiError.response) {
           console.error('API yanıt detayları:', apiError.response.data);
         }
         console.error('API Error Stack:', apiError.stack);
         
-        // External API hatası - rezervasyon türevde görünmeyecek
-        // Hata fırlat ki kullanıcı bilgilendirilsin
-        throw new Error(`External API rezervasyon hatası: ${apiError.message}. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
+        // External API hatası - rezervasyon türevde görünmeyebilir
+        // Ama rezervasyon yine de kaydedilecek (local ve cache)
+        // Hata fırlatma, sadece warning olarak işaretle
+        externalReservation = null;
+        externalRezId = null;
+        console.warn('⚠️ External API hatası nedeniyle rezervasyon türevde görünmeyebilir, ancak yerel rezervasyon kaydedilecek');
       }
 
     // Yerel veritabanına rezervasyon kaydet (MongoDB varsa)
