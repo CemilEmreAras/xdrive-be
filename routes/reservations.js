@@ -92,6 +92,7 @@ router.post('/', async (req, res) => {
     // Gerçek API'ye rezervasyon gönder (PDF formatına göre - ZORUNLU)
     let externalReservation = null;
     let externalRezId = null;
+    let externalId = null;
 
     // Tüm gerekli parametrelerin varlığını kontrol et
     // Önce car objesinden alanları kontrol et
