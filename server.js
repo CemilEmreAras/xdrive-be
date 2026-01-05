@@ -6,34 +6,27 @@ require('dotenv').config();
 const app = express();
 
 // CORS ayarları - Vercel ve localhost için
+// Vercel'de çalışıyorsa tüm origin'lere izin ver (güvenlik için production'da sınırlandırılabilir)
 const corsOptions = {
   origin: function (origin, callback) {
-    // Vercel production URL'leri
-    const allowedOrigins = [
-      'https://xdrive-e04d1acw9-cemil-emre-aras-projects.vercel.app', // Backend URL
-      'https://xdrive-fe-git-main-cemil-emre-aras-projects.vercel.app', // Frontend URL (git branch)
-      'https://xdrive-fe.vercel.app', // Production frontend URL
-      'https://xdrive-fe-', // Tüm frontend preview URL'leri (prefix)
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ];
-    
-    // Vercel'de çalışıyorsa tüm Vercel domain'lerine izin ver
-    if (process.env.VERCEL) {
-      if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
-        console.log('✅ CORS allowed (Vercel):', origin);
-        callback(null, true);
-        return;
-      }
+    // Vercel'de çalışıyorsa veya origin yoksa (Postman, curl gibi) izin ver
+    if (process.env.VERCEL || !origin) {
+      console.log('✅ CORS allowed (Vercel/No origin):', origin || 'no origin');
+      callback(null, true);
+      return;
     }
     
-    // Origin yoksa (Postman, curl gibi) veya izin verilen origin'lerden biriyse
-    if (!origin || allowedOrigins.some(allowed => {
-      if (allowed.includes('xdrive-fe-')) {
-        return origin.startsWith('https://xdrive-fe-') && origin.includes('vercel.app');
-      }
-      return origin === allowed || origin.includes(allowed);
-    })) {
+    // Localhost veya Vercel domain'leri için izin ver
+    const allowedPatterns = [
+      /^https?:\/\/localhost(:\d+)?$/,
+      /^https:\/\/.*\.vercel\.app$/,
+      /^https:\/\/xdrive-fe.*\.vercel\.app$/,
+      /^https:\/\/xdrive-fe\.vercel\.app$/
+    ];
+    
+    const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+    
+    if (isAllowed) {
       console.log('✅ CORS allowed:', origin);
       callback(null, true);
     } else {
@@ -42,8 +35,10 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400 // 24 saat
 };
 
 // Middleware
