@@ -228,22 +228,63 @@ const saveReservation = async (reservationData) => {
     
     let response;
     try {
+      // Önce GET ile dene (mevcut yöntem)
+      console.log('📤 GET isteği gönderiliyor...');
       response = await axios.get(url, { 
         params,
         timeout: 30000, // 30 saniye timeout
         validateStatus: function (status) {
           // 200-299 arası status kodlarını kabul et
           return status >= 200 && status < 300;
+        },
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       });
+      
+      // Eğer boş yanıt gelirse, POST ile dene
+      if (!response.data || 
+          (typeof response.data === 'string' && response.data.trim() === '') ||
+          (Array.isArray(response.data) && response.data.length === 0)) {
+        console.warn('⚠️ GET isteği boş yanıt döndü, POST ile deneniyor...');
+        
+        // POST ile dene (form-urlencoded)
+        const formData = new URLSearchParams();
+        Object.keys(params).forEach(key => {
+          formData.append(key, params[key]);
+        });
+        
+        response = await axios.post(url, formData.toString(), {
+          timeout: 30000,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json, text/plain, */*'
+          },
+          validateStatus: function (status) {
+            return status >= 200 && status < 300;
+          }
+        });
+        
+        console.log('📥 POST isteği yanıtı:', {
+          status: response.status,
+          data: response.data
+        });
+      }
     } catch (axiosError) {
       console.error('❌ External API istek hatası:', axiosError.message);
       if (axiosError.response) {
         console.error('❌ API yanıt status:', axiosError.response.status);
         console.error('❌ API yanıt data:', axiosError.response.data);
+        console.error('❌ API yanıt headers:', axiosError.response.headers);
       }
       if (axiosError.request) {
         console.error('❌ İstek gönderildi ama yanıt alınamadı');
+        console.error('❌ Request config:', {
+          url: axiosError.config?.url,
+          method: axiosError.config?.method,
+          params: axiosError.config?.params
+        });
       }
       throw new Error(`External API istek hatası: ${axiosError.message}. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
     }
