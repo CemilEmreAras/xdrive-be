@@ -39,8 +39,23 @@ app.use((req, res, next) => {
     path: req.path,
     originalUrl: req.originalUrl,
     baseUrl: req.baseUrl,
-    url: req.url
+    url: req.url,
+    headers: {
+      host: req.headers.host,
+      'x-forwarded-for': req.headers['x-forwarded-for'],
+      'x-vercel-id': req.headers['x-vercel-id']
+    }
   });
+  
+  // Vercel'de path'i normalize et (eğer /api olmadan geliyorsa)
+  // Vercel rewrite sonrası path genellikle /api/cars gibi gelir
+  // Ama bazen sadece /cars olarak gelebilir
+  if (req.url && !req.url.startsWith('/api') && req.url.startsWith('/')) {
+    console.log(`⚠️ Path /api olmadan geldi, normalize ediliyor: ${req.url} -> /api${req.url}`);
+    req.url = '/api' + req.url;
+    req.originalUrl = '/api' + req.originalUrl;
+  }
+  
   next();
 });
 
@@ -54,8 +69,9 @@ app.get('/', (req, res) => {
   });
 });
 
-// Routes - Vercel'de /api/* path'i zaten rewrite edilmiş
-// Ama Express route'ları /api/cars olarak tanımlı, bu yüzden path'i koruyoruz
+// Vercel'de /api/* path'i rewrite edilmiş ve /api/index.js'e yönlendiriliyor
+// Vercel rewrite sonrası path'i korur, yani /api/cars isteği geldiğinde
+// req.url hala /api/cars olur, bu yüzden route'ları /api ile başlatıyoruz
 app.use('/api/cars', require('../routes/cars'));
 app.use('/api/reservations', require('../routes/reservations'));
 app.use('/api/auth', require('../routes/auth'));
