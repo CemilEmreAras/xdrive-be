@@ -1,19 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/server.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/server.js"
+      "destination": "/api/index.js"
     }
   ],
   "headers": [
@@ -31,6 +21,10 @@
         {
           "key": "Access-Control-Allow-Headers",
           "value": "Content-Type, Authorization, X-Requested-With"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
         }
       ]
     }

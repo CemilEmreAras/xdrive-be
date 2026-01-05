@@ -107,27 +107,7 @@ if (process.env.VERCEL !== '1') {
   });
 }
 
-// Vercel serverless function export
-// Vercel'de tüm istekler bu function'a yönlendirilir
-// Handler olarak export et (Vercel için)
-module.exports = (req, res) => {
-  // CORS header'larını tekrar set et (güvenlik için)
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  // OPTIONS isteği için hemen yanıt ver
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  // Express app'i handler olarak kullan
-  return app(req, res);
-};
+// Local development için export
+// Vercel'de api/index.js kullanılacak
+module.exports = app;
 
