@@ -48,6 +48,10 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
+
+// OPTIONS istekleri için özel handler (preflight)
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
