@@ -41,12 +41,31 @@ const corsOptions = {
   maxAge: 86400 // 24 saat
 };
 
-// Middleware
-app.use(cors(corsOptions));
+// CORS middleware - Vercel için özel
+app.use((req, res, next) => {
+  // Tüm origin'lere izin ver (production'da sınırlandırılabilir)
+  const origin = req.headers.origin;
+  
+  if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  // OPTIONS isteği için hemen yanıt ver
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
-// OPTIONS istekleri için özel handler (preflight)
-app.options('*', cors(corsOptions));
-
+// Express middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
