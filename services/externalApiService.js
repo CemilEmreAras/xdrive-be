@@ -240,10 +240,20 @@ const saveReservation = async (reservationData) => {
     if (!response.data || 
         (typeof response.data === 'string' && response.data.trim() === '') ||
         (Array.isArray(response.data) && response.data.length === 0)) {
-      console.warn('⚠️ External API boş yanıt döndü');
-      console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir ama onaylanmamış olabilir');
-      // Boş yanıt döndür ama hata fırlatma (rezervasyon devam edebilir)
-      return response.data || [];
+      console.error('❌ External API boş yanıt döndü');
+      console.error('❌ Gönderilen parametreler:', {
+        Pickup_ID: params.Pickup_ID,
+        Drop_Off_ID: params.Drop_Off_ID,
+        Cars_Park_ID: params.Cars_Park_ID,
+        Group_ID: params.Group_ID,
+        Rez_ID: params.Rez_ID,
+        Your_Rent_Price: params.Your_Rent_Price,
+        Name: params.Name,
+        SurName: params.SurName
+      });
+      console.error('❌ Bu durumda rezervasyon türevde görünmeyecek!');
+      // Boş yanıt = rezervasyon başarısız, hata fırlat
+      throw new Error('External API boş yanıt döndü. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
     }
     
     console.log('📥 External API rezervasyon yanıtı:', JSON.stringify(response.data, null, 2));
