@@ -382,7 +382,15 @@ const saveReservation = async (reservationData) => {
       
       // rez_kayit_no kontrolü - 0 ise rezervasyon kaydedilmemiş demektir
       const rezKayitNo = firstItem.rez_kayit_no || firstItem.Rez_Kayit_No || firstItem.rezKayitNo || firstItem.rez_kayitNo;
-      if (rezKayitNo === '0' || rezKayitNo === 0 || rezKayitNo === null || rezKayitNo === undefined || rezKayitNo === '') {
+      const rezId = firstItem.rez_id || firstItem.Rez_ID || firstItem.rezId;
+      
+      // Eğer rez_id varsa ve rez_kayit_no 0 değilse, rezervasyon başarılı sayılabilir
+      const hasValidRezId = rezId && rezId !== '0' && rezId !== 0 && rezId !== null && rezId !== undefined && rezId !== '';
+      const hasValidRezKayitNo = rezKayitNo && rezKayitNo !== '0' && rezKayitNo !== 0 && rezKayitNo !== null && rezKayitNo !== undefined && rezKayitNo !== '';
+      
+      // Eğer rez_id varsa ama rez_kayit_no yoksa veya 0 ise, yine de başarılı sayılabilir (bazı API'ler sadece rez_id döndürür)
+      if (!hasValidRezKayitNo && !hasValidRezId) {
+        // Hem rez_id hem rez_kayit_no yoksa veya 0 ise, hata
         // Tüm hata mesajlarını topla
         const errorMessages = [
           firstItem.error,
