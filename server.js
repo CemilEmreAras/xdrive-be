@@ -13,26 +13,37 @@ const corsOptions = {
       'https://xdrive-e04d1acw9-cemil-emre-aras-projects.vercel.app', // Backend URL
       'https://xdrive-fe-git-main-cemil-emre-aras-projects.vercel.app', // Frontend URL (git branch)
       'https://xdrive-fe.vercel.app', // Production frontend URL
-      'https://xdrive-fe-*.vercel.app', // Tüm frontend preview URL'leri
-      'https://*.vercel.app', // Tüm Vercel subdomain'leri
+      'https://xdrive-fe-', // Tüm frontend preview URL'leri (prefix)
       'http://localhost:3000',
       'http://localhost:3001'
     ];
     
+    // Vercel'de çalışıyorsa tüm Vercel domain'lerine izin ver
+    if (process.env.VERCEL) {
+      if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+        console.log('✅ CORS allowed (Vercel):', origin);
+        callback(null, true);
+        return;
+      }
+    }
+    
     // Origin yoksa (Postman, curl gibi) veya izin verilen origin'lerden biriyse
     if (!origin || allowedOrigins.some(allowed => {
-      if (allowed.includes('*')) {
-        return origin.includes(allowed.replace('*.', ''));
+      if (allowed.includes('xdrive-fe-')) {
+        return origin.startsWith('https://xdrive-fe-') && origin.includes('vercel.app');
       }
-      return origin === allowed;
+      return origin === allowed || origin.includes(allowed);
     })) {
+      console.log('✅ CORS allowed:', origin);
       callback(null, true);
     } else {
-      console.warn('CORS blocked origin:', origin);
+      console.warn('❌ CORS blocked origin:', origin);
       callback(new Error('CORS policy violation'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 // Middleware
