@@ -174,7 +174,16 @@ const saveReservation = async (reservationData) => {
       Group_ID: String(groupId),
       User_Name: String(API_CONFIG.USER_NAME),
       User_Pass: String(API_CONFIG.USER_PASS),
-      Rez_ID: String(rezId),
+      // Rez_ID'yi normalize et - "XML-6881079" gibi prefix'leri kaldır, sadece sayısal kısmı kullan
+      Rez_ID: (() => {
+        const rezIdStr = String(rezId || '');
+        // Eğer "XML-" veya başka prefix varsa, sadece sayısal kısmı al
+        const numericPart = rezIdStr.replace(/^[A-Za-z-]+/, '').trim();
+        if (numericPart && numericPart !== rezIdStr) {
+          console.warn(`⚠️ Rez_ID normalize edildi: "${rezIdStr}" -> "${numericPart}"`);
+        }
+        return numericPart || rezIdStr;
+      })(),
       Pickup_Day: String(pickup.getDate()).padStart(2, '0'),
       Pickup_Month: String(pickup.getMonth() + 1).padStart(2, '0'),
       Pickup_Year: String(pickup.getFullYear()),
