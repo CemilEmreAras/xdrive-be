@@ -410,6 +410,26 @@ const saveReservation = async (reservationData) => {
                         'Rezervasyon kaydedilemedi. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
         throw new Error(`External API Rezervasyon Hatası: ${errorMsg}`);
       }
+    } else if (typeof response.data === 'string') {
+      // String yanıt olabilir (XML veya HTML hata sayfası)
+      console.warn('⚠️ External API string yanıt döndü:', response.data.substring(0, 500));
+      
+      // Eğer string yanıt boş değilse, parse etmeyi dene
+      if (response.data.trim() !== '') {
+        try {
+          // JSON string olabilir
+          const parsed = JSON.parse(response.data);
+          console.log('📥 String yanıt JSON olarak parse edildi:', parsed);
+          return parsed;
+        } catch (parseError) {
+          // JSON değilse, hata sayfası veya XML olabilir
+          console.error('❌ String yanıt JSON değil, muhtemelen hata sayfası');
+          console.error('❌ Yanıt içeriği:', response.data.substring(0, 1000));
+          throw new Error(`External API beklenmedik string yanıt döndü. Muhtemelen hata sayfası. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
+        }
+      } else {
+        throw new Error('External API boş string yanıt döndü. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
+      }
     }
     
     return response.data;
