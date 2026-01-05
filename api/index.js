@@ -35,6 +35,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Debug: Tüm gelen istekleri logla (EN ÜSTTE - route'lardan önce)
 app.use((req, res, next) => {
+  const originalUrl = req.url;
+  const originalPath = req.path;
+  
   console.log(`🔍 Incoming request: ${req.method} ${req.url}`, {
     path: req.path,
     originalUrl: req.originalUrl,
@@ -47,13 +50,18 @@ app.use((req, res, next) => {
     }
   });
   
-  // Vercel'de path'i normalize et (eğer /api olmadan geliyorsa)
-  // Vercel rewrite sonrası path genellikle /api/cars gibi gelir
-  // Ama bazen sadece /cars olarak gelebilir
+  // Vercel'de rewrite sonrası path genellikle /api/cars gibi gelir
+  // Ama bazen sadece /cars olarak gelebilir (rewrite pattern'e bağlı)
+  // Her iki durumu da handle etmek için hem /api/cars hem de /cars route'larını tanımlıyoruz
+  // Ayrıca path'i normalize ediyoruz
+  
+  // Eğer path /api ile başlamıyorsa ve / ile başlıyorsa, /api ekle
   if (req.url && !req.url.startsWith('/api') && req.url.startsWith('/')) {
     console.log(`⚠️ Path /api olmadan geldi, normalize ediliyor: ${req.url} -> /api${req.url}`);
     req.url = '/api' + req.url;
-    req.originalUrl = '/api' + req.originalUrl;
+    if (req.originalUrl && !req.originalUrl.startsWith('/api')) {
+      req.originalUrl = '/api' + req.originalUrl;
+    }
   }
   
   next();
@@ -75,6 +83,12 @@ app.get('/', (req, res) => {
 app.use('/api/cars', require('../routes/cars'));
 app.use('/api/reservations', require('../routes/reservations'));
 app.use('/api/auth', require('../routes/auth'));
+
+// Fallback: Eğer path /api olmadan gelirse (normalize edilmişse bile)
+// Bu route'lar da çalışacak
+app.use('/cars', require('../routes/cars'));
+app.use('/reservations', require('../routes/reservations'));
+app.use('/auth', require('../routes/auth'));
 
 // 404 handler - tüm route'lardan sonra
 app.use((req, res) => {
