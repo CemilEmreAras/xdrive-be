@@ -5,8 +5,37 @@ require('dotenv').config();
 
 const app = express();
 
+// CORS ayarları - Vercel ve localhost için
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Vercel production URL'leri
+    const allowedOrigins = [
+      'https://xdrive-e04d1acw9-cemil-emre-aras-projects.vercel.app', // Backend URL
+      'https://xdrive-fe-git-main-cemil-emre-aras-projects.vercel.app', // Frontend URL
+      'https://xdrive-fe.vercel.app', // Production frontend URL (eğer varsa)
+      'https://*.vercel.app', // Tüm Vercel subdomain'leri
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ];
+    
+    // Origin yoksa (Postman, curl gibi) veya izin verilen origin'lerden biriyse
+    if (!origin || allowedOrigins.some(allowed => {
+      if (allowed.includes('*')) {
+        return origin.includes(allowed.replace('*.', ''));
+      }
+      return origin === allowed;
+    })) {
+      callback(null, true);
+    } else {
+      console.warn('CORS blocked origin:', origin);
+      callback(new Error('CORS policy violation'));
+    }
+  },
+  credentials: true
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -38,7 +67,13 @@ if (process.env.MONGODB_URI && process.env.MONGODB_URI !== '') {
 
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-  console.log(`Server ${PORT} portunda çalışıyor`);
-});
+// Vercel'de serverless function olarak çalışıyorsa listen etme
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`Server ${PORT} portunda çalışıyor`);
+  });
+}
+
+// Vercel serverless function export
+module.exports = app;
 
