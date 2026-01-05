@@ -233,7 +233,16 @@ const saveReservation = async (reservationData) => {
     console.log('📤 External API\'ye gönderilecek parametreler:');
     console.log(JSON.stringify(params, null, 2));
     console.log('📤 External API URL:', url);
-    console.log('📤 Tam URL (debug için):', `${url}?${new URLSearchParams(params).toString()}`);
+    // URLSearchParams Node.js'te global olabilir, ama güvenli olmak için try-catch kullan
+    try {
+      const { URLSearchParams } = require('url');
+      const queryString = new URLSearchParams(params).toString();
+      console.log('📤 Tam URL (debug için):', `${url}?${queryString}`);
+    } catch (e) {
+      // URLSearchParams yoksa, manuel olarak query string oluştur
+      const queryString = Object.keys(params).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`).join('&');
+      console.log('📤 Tam URL (debug için):', `${url}?${queryString}`);
+    }
     
     let response;
     try {
@@ -259,12 +268,21 @@ const saveReservation = async (reservationData) => {
         console.warn('⚠️ GET isteği boş yanıt döndü, POST ile deneniyor...');
         
         // POST ile dene (form-urlencoded)
-        const formData = new URLSearchParams();
-        Object.keys(params).forEach(key => {
-          formData.append(key, params[key]);
-        });
+        // URLSearchParams Node.js'te global olmayabilir, manuel olarak query string oluştur
+        let formDataString;
+        try {
+          const { URLSearchParams } = require('url');
+          const formData = new URLSearchParams();
+          Object.keys(params).forEach(key => {
+            formData.append(key, params[key]);
+          });
+          formDataString = formData.toString();
+        } catch (e) {
+          // URLSearchParams yoksa, manuel olarak query string oluştur
+          formDataString = Object.keys(params).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`).join('&');
+        }
         
-        response = await axios.post(url, formData.toString(), {
+        response = await axios.post(url, formDataString, {
           timeout: 30000,
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
