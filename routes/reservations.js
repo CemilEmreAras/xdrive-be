@@ -259,13 +259,16 @@ router.post('/', async (req, res) => {
           if (!externalReservation || 
               (typeof externalReservation === 'string' && externalReservation.trim() === '') ||
               (Array.isArray(externalReservation) && externalReservation.length === 0)) {
-            console.error('❌ External API boş yanıt döndü');
-            console.error('❌ Rezervasyon gönderildi ama onay yanıtı alınamadı');
-            console.error('❌ Rezervasyon türevde görünmeyebilir!');
-            throw new Error('External API\'den rezervasyon onayı alınamadı. Rezervasyon türevde görünmeyebilir. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
+            console.warn('⚠️ External API boş yanıt döndü');
+            console.warn('⚠️ Rezervasyon gönderildi ama onay yanıtı alınamadı');
+            console.warn('⚠️ Rezervasyon türevde görünmeyebilir, ancak yerel rezervasyon kaydedilecek');
+            externalReservation = null;
+            externalRezId = null;
           } else {
-            console.error('❌ External API rezervasyon yanıtı beklenmedik format:', externalReservation);
-            throw new Error('External API\'den beklenmedik yanıt formatı. Rezervasyon türevde görünmeyebilir. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
+            console.warn('⚠️ External API rezervasyon yanıtı beklenmedik format:', externalReservation);
+            console.warn('⚠️ Rezervasyon türevde görünmeyebilir, ancak yerel rezervasyon kaydedilecek');
+            externalReservation = null;
+            externalRezId = null;
           }
         }
       } catch (apiError) {
