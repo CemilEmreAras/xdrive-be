@@ -11,13 +11,9 @@ const app = express();
 app.use((req, res, next) => {
   const origin = req.headers.origin || req.headers.Origin;
   
-  // CORS header'larını her zaman set et
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
+  // TÜM origin'lere izin ver (production için)
+  // Özellikle xdrive-fe.vercel.app için
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -25,7 +21,7 @@ app.use((req, res, next) => {
   
   // OPTIONS isteği için hemen yanıt ver
   if (req.method === 'OPTIONS') {
-    console.log('✅ OPTIONS preflight - CORS headers set');
+    console.log('✅ OPTIONS preflight - CORS headers set for origin:', origin);
     return res.status(200).end();
   }
   
