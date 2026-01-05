@@ -224,36 +224,59 @@ const saveReservation = async (reservationData) => {
     console.log('📤 External API\'ye gönderilecek parametreler:');
     console.log(JSON.stringify(params, null, 2));
     console.log('📤 External API URL:', url);
+    console.log('📤 Tam URL (debug için):', `${url}?${new URLSearchParams(params).toString()}`);
     
-    const response = await axios.get(url, { params });
+    let response;
+    try {
+      response = await axios.get(url, { 
+        params,
+        timeout: 30000, // 30 saniye timeout
+        validateStatus: function (status) {
+          // 200-299 arası status kodlarını kabul et
+          return status >= 200 && status < 300;
+        }
+      });
+    } catch (axiosError) {
+      console.error('❌ External API istek hatası:', axiosError.message);
+      if (axiosError.response) {
+        console.error('❌ API yanıt status:', axiosError.response.status);
+        console.error('❌ API yanıt data:', axiosError.response.data);
+      }
+      if (axiosError.request) {
+        console.error('❌ İstek gönderildi ama yanıt alınamadı');
+      }
+      throw new Error(`External API istek hatası: ${axiosError.message}. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
+    }
     
-    // API yanıtını kontrol et
+    // API yanıtını kontrol et - DETAYLI
     console.log('📥 External API rezervasyon yanıtı (raw):', {
       status: response.status,
       statusText: response.statusText,
+      headers: response.headers,
       data: response.data,
       dataType: typeof response.data,
-      dataLength: response.data ? (Array.isArray(response.data) ? response.data.length : String(response.data).length) : 0
+      isArray: Array.isArray(response.data),
+      dataLength: response.data ? (Array.isArray(response.data) ? response.data.length : String(response.data).length) : 0,
+      dataString: typeof response.data === 'string' ? response.data.substring(0, 500) : 'N/A'
     });
     
-    // Yanıt boş mu kontrol et
-    if (!response.data || 
+    // Yanıt boş mu kontrol et - DETAYLI
+    const isEmpty = !response.data || 
         (typeof response.data === 'string' && response.data.trim() === '') ||
-        (Array.isArray(response.data) && response.data.length === 0)) {
+        (Array.isArray(response.data) && response.data.length === 0) ||
+        (typeof response.data === 'object' && response.data !== null && Object.keys(response.data).length === 0);
+    
+    if (isEmpty) {
       console.error('❌ External API boş yanıt döndü');
-      console.error('❌ Gönderilen parametreler:', {
-        Pickup_ID: params.Pickup_ID,
-        Drop_Off_ID: params.Drop_Off_ID,
-        Cars_Park_ID: params.Cars_Park_ID,
-        Group_ID: params.Group_ID,
-        Rez_ID: params.Rez_ID,
-        Your_Rent_Price: params.Your_Rent_Price,
-        Name: params.Name,
-        SurName: params.SurName
-      });
+      console.error('❌ Gönderilen parametreler (tümü):', JSON.stringify(params, null, 2));
       console.error('❌ Bu durumda rezervasyon türevde görünmeyecek!');
+      console.error('❌ Olası nedenler:');
+      console.error('   1. Parametreler yanlış formatlanmış olabilir');
+      console.error('   2. API tarafında bir hata oluşmuş olabilir');
+      console.error('   3. Zorunlu alanlar eksik olabilir');
+      console.error('   4. Fiyat değeri geçersiz olabilir');
       // Boş yanıt = rezervasyon başarısız, hata fırlat
-      throw new Error('External API boş yanıt döndü. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
+      throw new Error(`External API boş yanıt döndü. Gönderilen parametreler: Pickup_ID=${params.Pickup_ID}, Drop_Off_ID=${params.Drop_Off_ID}, Cars_Park_ID=${params.Cars_Park_ID}, Group_ID=${params.Group_ID}, Rez_ID=${params.Rez_ID}, Your_Rent_Price=${params.Your_Rent_Price}. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
     }
     
     console.log('📥 External API rezervasyon yanıtı:', JSON.stringify(response.data, null, 2));
