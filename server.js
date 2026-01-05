@@ -41,12 +41,13 @@ const corsOptions = {
   maxAge: 86400 // 24 saat
 };
 
-// CORS middleware - Vercel için özel
+// CORS middleware - Vercel için özel (EN ÜSTTE - tüm isteklerden önce)
 app.use((req, res, next) => {
-  // Tüm origin'lere izin ver (production'da sınırlandırılabilir)
+  // Tüm origin'lere izin ver
   const origin = req.headers.origin;
   
-  if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
+  // CORS header'larını her zaman set et
+  if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,11 +58,13 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
   
-  // OPTIONS isteği için hemen yanıt ver
+  // OPTIONS isteği için hemen yanıt ver (preflight)
   if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS preflight request handled');
     return res.status(200).end();
   }
   
+  console.log(`✅ CORS headers set for ${req.method} ${req.path} from origin: ${origin || 'no origin'}`);
   next();
 });
 
@@ -106,5 +109,25 @@ if (process.env.VERCEL !== '1') {
 
 // Vercel serverless function export
 // Vercel'de tüm istekler bu function'a yönlendirilir
-module.exports = app;
+// Handler olarak export et (Vercel için)
+module.exports = (req, res) => {
+  // CORS header'larını tekrar set et (güvenlik için)
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // OPTIONS isteği için hemen yanıt ver
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  // Express app'i handler olarak kullan
+  return app(req, res);
+};
 
