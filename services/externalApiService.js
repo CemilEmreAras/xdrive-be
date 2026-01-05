@@ -441,14 +441,16 @@ const saveReservation = async (reservationData) => {
       if (firstItem.success === 'False' || firstItem.success === false || 
           firstItem.Success === 'False' || firstItem.Success === false) {
         // Eğer rez_id veya rez_kayit_no varsa, rezervasyon yapılmış olabilir
-        const rezId = firstItem.rez_id || firstItem.Rez_ID || firstItem.rezId;
-        if (rezId && rezKayitNo && rezKayitNo !== '0' && rezKayitNo !== 0) {
-          console.warn('⚠️ External API success: False ama rez_id ve rez_kayit_no var:', {
+        // ÖNEMLİ: Bazı API'ler success: False döndürse bile rezervasyon yapılmış olabilir
+        if (hasValidRezId || hasValidRezKayitNo) {
+          console.warn('⚠️ External API success: False ama rez_id veya rez_kayit_no var:', {
             rez_id: rezId,
-            rez_kayit_no: rezKayitNo
+            rez_kayit_no: rezKayitNo,
+            hasValidRezId,
+            hasValidRezKayitNo
           });
-          console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir');
-          // Rezervasyon yapılmış gibi devam et
+          console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir, devam ediliyor...');
+          // Rezervasyon yapılmış gibi devam et - HATA FIRLATMA!
         } else {
           // Hata mesajını bul
           const errorMsg = firstItem.error || firstItem.Error || firstItem.message || firstItem.Message || 
@@ -465,6 +467,16 @@ const saveReservation = async (reservationData) => {
   
           throw new Error(`External API Rezervasyon Hatası: ${errorMsg}`);
         }
+      }
+      
+      // Başarılı rezervasyon kontrolü - rez_id veya rez_kayit_no varsa başarılı say
+      if (hasValidRezId || hasValidRezKayitNo) {
+        console.log('✅ External API rezervasyon başarılı:', {
+          rez_id: rezId,
+          rez_kayit_no: rezKayitNo,
+          success: firstItem.success,
+          Status: firstItem.Status
+        });
       }
       
       // Başarılı ise logla
