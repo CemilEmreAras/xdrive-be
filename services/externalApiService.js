@@ -141,7 +141,26 @@ const saveReservation = async (reservationData) => {
 
     const url = `${API_CONFIG.BASE_URL}/JsonRez_Save.aspx`;
     
+    // Saat değerlerini kontrol et ve normalize et
+    // API 0-5 arası saatleri kabul etmeyebilir, minimum 10:00 olmalı
+    let normalizedPickupHour = pickupHour;
+    let normalizedPickupMin = pickupMin;
+    let normalizedDropoffHour = dropoffHour;
+    let normalizedDropoffMin = dropoffMin;
+    
+    if (normalizedPickupHour < 10) {
+      console.warn(`⚠️ Pickup saat çok erken (${normalizedPickupHour}:${normalizedPickupMin}), 10:00'a ayarlanıyor`);
+      normalizedPickupHour = 10;
+      normalizedPickupMin = 0;
+    }
+    if (normalizedDropoffHour < 10) {
+      console.warn(`⚠️ Dropoff saat çok erken (${normalizedDropoffHour}:${normalizedDropoffMin}), 10:00'a ayarlanıyor`);
+      normalizedDropoffHour = 10;
+      normalizedDropoffMin = 0;
+    }
+    
     // Gönderilecek parametreleri hazırla (tüm değerler string olmalı)
+    // ÖNEMLİ: Boş string yerine varsayılan değerler kullan
     const params = {
       Key_Hack: String(API_CONFIG.KEY_HACK),
       Pickup_ID: String(pickupId),
@@ -150,7 +169,7 @@ const saveReservation = async (reservationData) => {
       SurName: String(surname || ''),
       MobilePhone: String(mobilePhone || ''),
       Mail_Adress: String(mailAddress || ''),
-      Rental_ID: String(rentalId || ''),
+      Rental_ID: String(rentalId || ''), // Ehliyet numarası - boş olabilir ama string olmalı
       Cars_Park_ID: String(carsParkId),
       Group_ID: String(groupId),
       User_Name: String(API_CONFIG.USER_NAME),
@@ -158,14 +177,14 @@ const saveReservation = async (reservationData) => {
       Rez_ID: String(rezId),
       Pickup_Day: String(pickup.getDate()).padStart(2, '0'),
       Pickup_Month: String(pickup.getMonth() + 1).padStart(2, '0'),
-      Pickup_Year: String(pickup.getFullYear()), // String olarak gönder
+      Pickup_Year: String(pickup.getFullYear()),
       Drop_Off_Day: String(dropoff.getDate()).padStart(2, '0'),
       Drop_Off_Month: String(dropoff.getMonth() + 1).padStart(2, '0'),
-      Drop_Off_Year: String(dropoff.getFullYear()), // String olarak gönder
-      Pickup_Hour: String(pickupHour).padStart(2, '0'), // String ve 2 haneli
-      Pickup_Min: String(pickupMin).padStart(2, '0'), // String ve 2 haneli
-      Drop_Off_Hour: String(dropoffHour).padStart(2, '0'), // String ve 2 haneli
-      Drop_Off_Min: String(dropoffMin).padStart(2, '0'), // String ve 2 haneli
+      Drop_Off_Year: String(dropoff.getFullYear()),
+      Pickup_Hour: String(normalizedPickupHour).padStart(2, '0'), // Minimum 10:00
+      Pickup_Min: String(normalizedPickupMin).padStart(2, '0'),
+      Drop_Off_Hour: String(normalizedDropoffHour).padStart(2, '0'), // Minimum 10:00
+      Drop_Off_Min: String(normalizedDropoffMin).padStart(2, '0'),
       Adress: String(address || ''),
       District: String(district || ''),
       City: String(city || ''),
@@ -178,12 +197,26 @@ const saveReservation = async (reservationData) => {
       CDW: String(cdw || 'OFF'),
       SCDW: String(scdw || 'OFF'),
       LCF: String(lcf || 'OFF'),
-      Your_Rez_ID: yourRezId,
-      Your_Rent_Price: String(yourRentPrice || 0), // String olarak gönder
-      Your_Extra_Price: String(yourExtraPrice || 0), // String olarak gönder
-      Your_Drop_Price: String(yourDropPrice || 0), // String olarak gönder
-      Payment_Type: String(paymentType || 0) // String olarak gönder
+      Your_Rez_ID: String(yourRezId || `XDRIVE-${Date.now()}`), // Boş olmamalı
+      Your_Rent_Price: String(yourRentPrice || 0), // Fiyat 0 olamaz, kontrol et
+      Your_Extra_Price: String(yourExtraPrice || 0),
+      Your_Drop_Price: String(yourDropPrice || 0),
+      Payment_Type: String(paymentType || 0)
     };
+    
+    // Fiyat kontrolü - Your_Rent_Price 0 ise uyar
+    if (parseFloat(params.Your_Rent_Price) <= 0) {
+      console.warn('⚠️ Your_Rent_Price 0 veya negatif:', params.Your_Rent_Price);
+      console.warn('⚠️ Bu durumda API rezervasyonu reddedebilir');
+    }
+    
+    // Zorunlu alanları kontrol et
+    const requiredFields = ['Pickup_ID', 'Drop_Off_ID', 'Cars_Park_ID', 'Group_ID', 'Rez_ID', 'Name', 'SurName'];
+    const missingFields = requiredFields.filter(field => !params[field] || params[field] === 'undefined' || params[field] === 'null');
+    if (missingFields.length > 0) {
+      console.error('❌ Zorunlu alanlar eksik:', missingFields);
+      throw new Error(`Rezervasyon için zorunlu alanlar eksik: ${missingFields.join(', ')}`);
+    }
     
     // Debug: Gönderilecek parametreleri logla
     console.log('📤 External API\'ye gönderilecek parametreler:');
