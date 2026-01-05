@@ -275,14 +275,9 @@ router.post('/', async (req, res) => {
         }
         console.error('API Error Stack:', apiError.stack);
         
-        // External API hatası - ama yine de rezervasyonu kaydetmeye çalış
-        // Çünkü external API'den success: False gelebilir ama rezervasyon yine de yapılmış olabilir
-        console.warn('⚠️ External API hatası, ama rezervasyon devam ediyor...');
-        
-        // External API hatası - kullanıcıya bildir ama rezervasyonu kaydet
-        // (External API'den success: False gelebilir ama rezervasyon yine de yapılmış olabilir)
-        // Bu durumda rezervasyonu pending olarak kaydet
-        // External API hatası olsa bile devam et
+        // External API hatası - rezervasyon türevde görünmeyecek
+        // Hata fırlat ki kullanıcı bilgilendirilsin
+        throw new Error(`External API rezervasyon hatası: ${apiError.message}. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
       }
 
     // Yerel veritabanına rezervasyon kaydet (MongoDB varsa)
