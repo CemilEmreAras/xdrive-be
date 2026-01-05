@@ -204,10 +204,12 @@ const saveReservation = async (reservationData) => {
       Payment_Type: String(paymentType || 0)
     };
     
-    // Fiyat kontrolü - Your_Rent_Price 0 ise uyar
-    if (parseFloat(params.Your_Rent_Price) <= 0) {
-      console.warn('⚠️ Your_Rent_Price 0 veya negatif:', params.Your_Rent_Price);
-      console.warn('⚠️ Bu durumda API rezervasyonu reddedebilir');
+    // Fiyat kontrolü - Your_Rent_Price 0 ise uyar ve hata fırlat
+    const rentPrice = parseFloat(params.Your_Rent_Price);
+    if (isNaN(rentPrice) || rentPrice <= 0) {
+      console.error('❌ Your_Rent_Price geçersiz:', params.Your_Rent_Price);
+      console.error('❌ Bu durumda API rezervasyonu reddedecek!');
+      throw new Error(`Rezervasyon fiyatı geçersiz (Your_Rent_Price: ${params.Your_Rent_Price}). Lütfen araç fiyatını kontrol edin.`);
     }
     
     // Zorunlu alanları kontrol et
