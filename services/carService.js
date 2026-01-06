@@ -553,27 +553,69 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               }
               
               // Hiç resim yoksa, alternatif yöntemler dene
-              // 1. car_web_id ile resim URL'i oluşturmayı dene
+              // API'den resim gelmediği için farklı URL formatlarını deniyoruz
+              
+              // 1. car_web_id ile resim URL'i oluşturmayı dene (farklı formatlar)
               const carWebId = apiCar.car_web_id || apiCar.Car_Web_ID || apiCar.car_Web_ID;
               if (carWebId && carWebId !== '' && carWebId !== '0') {
-                // Örnek: http://xdrivejson.turevsistem.com/images/car_{car_web_id}.jpg
-                const alternativeImageUrl = `http://xdrivejson.turevsistem.com/images/car_${carWebId}.jpg`;
+                // Farklı URL formatlarını dene
+                const alternativeUrls = [
+                  `http://xdrivejson.turevsistem.com/images/car_${carWebId}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/car_${carWebId}.png`,
+                  `http://xdrivejson.turevsistem.com/cars/${carWebId}.jpg`,
+                  `http://xdrivejson.turevsistem.com/cars/${carWebId}.png`,
+                  `http://xdrivejson.turevsistem.com/arac/${carWebId}.jpg`,
+                  `http://xdrivejson.turevsistem.com/arac/${carWebId}.png`
+                ];
+                
+                // İlk URL'i döndür (frontend'de onError ile diğerleri denenebilir)
+                const alternativeImageUrl = alternativeUrls[0];
                 
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  🔄 Alternatif resim URL\'si deneniyor (car_web_id):', alternativeImageUrl);
+                  console.log('  🔄 Alternatif resim URL\'leri deneniyor (car_web_id):', alternativeUrls);
+                  console.log('  📌 İlk URL kullanılıyor:', alternativeImageUrl);
                 }
                 
-                // Not: Bu URL'in gerçekten var olup olmadığını kontrol etmek için bir istek yapabiliriz
-                // Ama şimdilik direkt döndürelim, frontend'de onError ile handle edilir
                 return alternativeImageUrl;
               }
               
-              // 2. group_id ile resim URL'i oluşturmayı dene
+              // 2. group_id ile resim URL'i oluşturmayı dene (farklı formatlar)
               if (finalGroupIdValue && finalGroupIdValue !== '' && finalGroupIdValue !== '0') {
-                const alternativeImageUrl = `http://xdrivejson.turevsistem.com/images/group_${finalGroupIdValue}.jpg`;
+                const alternativeUrls = [
+                  `http://xdrivejson.turevsistem.com/images/group_${finalGroupIdValue}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/group_${finalGroupIdValue}.png`,
+                  `http://xdrivejson.turevsistem.com/groups/${finalGroupIdValue}.jpg`,
+                  `http://xdrivejson.turevsistem.com/groups/${finalGroupIdValue}.png`,
+                  `http://xdrivejson.turevsistem.com/grup/${finalGroupIdValue}.jpg`,
+                  `http://xdrivejson.turevsistem.com/grup/${finalGroupIdValue}.png`
+                ];
+                
+                const alternativeImageUrl = alternativeUrls[0];
                 
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  🔄 Alternatif resim URL\'si deneniyor (group_id):', alternativeImageUrl);
+                  console.log('  🔄 Alternatif resim URL\'leri deneniyor (group_id):', alternativeUrls);
+                  console.log('  📌 İlk URL kullanılıyor:', alternativeImageUrl);
+                }
+                
+                return alternativeImageUrl;
+              }
+              
+              // 3. rez_id ile resim URL'i oluşturmayı dene (XML- prefix'i kaldır)
+              if (finalRezId && finalRezId !== '' && finalRezId !== '0') {
+                // XML-6881452 -> 6881452
+                const rezIdClean = String(finalRezId).replace(/^XML-/, '').replace(/^xml-/i, '');
+                const alternativeUrls = [
+                  `http://xdrivejson.turevsistem.com/images/rez_${rezIdClean}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/rez_${rezIdClean}.png`,
+                  `http://xdrivejson.turevsistem.com/cars/${rezIdClean}.jpg`,
+                  `http://xdrivejson.turevsistem.com/cars/${rezIdClean}.png`
+                ];
+                
+                const alternativeImageUrl = alternativeUrls[0];
+                
+                if (availableCars.indexOf(car) === 0) {
+                  console.log('  🔄 Alternatif resim URL\'leri deneniyor (rez_id):', alternativeUrls);
+                  console.log('  📌 İlk URL kullanılıyor:', alternativeImageUrl);
                 }
                 
                 return alternativeImageUrl;
