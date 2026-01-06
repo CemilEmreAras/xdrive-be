@@ -370,14 +370,19 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               dropoffId: params.dropoffId
             },
             image: (() => {
-              // Önce grup bilgisinden resim al
-              const groupImage = groupInfo.imagePath;
+              // ÖNCE API dokümantasyonunda belirtilen Image_Path alanını kontrol et (öncelikli)
+              const apiImagePath = apiCar.Image_Path || apiCar.image_Path || apiCar.image_path || apiCar.IMAGE_PATH;
               
               // Debug: İlk araç için resim bilgilerini logla
               if (availableCars.indexOf(car) === 0) {
-                console.log('🖼️ Resim bilgileri:');
-                console.log('  GroupInfo:', JSON.stringify(groupInfo, null, 2));
-                console.log('  GroupImage:', groupImage);
+                console.log('🖼️ Resim bilgileri (İLK ARAÇ):');
+                console.log('  📋 API dokümantasyonunda belirtilen Image_Path:', apiImagePath);
+                console.log('  📋 Image_Path (tüm varyasyonlar):', {
+                  'Image_Path': apiCar.Image_Path,
+                  'image_Path': apiCar.image_Path,
+                  'image_path': apiCar.image_path,
+                  'IMAGE_PATH': apiCar.IMAGE_PATH
+                });
                 
                 // API'den gelen tüm resim alanlarını kontrol et
                 const allImageKeys = Object.keys(apiCar).filter(k => 
@@ -389,9 +394,10 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   k.toLowerCase().includes('foto')
                 );
                 
-                console.log('  API\'den gelen resim alanları:', allImageKeys);
+                console.log('  🔍 API\'den gelen tüm resim alanları:', allImageKeys);
                 allImageKeys.forEach(key => {
-                  console.log(`    ${key}:`, apiCar[key], '(tip:', typeof apiCar[key], ')');
+                  const value = apiCar[key];
+                  console.log(`    ${key}:`, value, '(tip:', typeof value, ', boş mu:', !value || value === '' || value === 'null' || value === 'undefined', ')');
                 });
                 
                 // Eğer hiç resim alanı yoksa, tüm alanları göster
@@ -399,13 +405,37 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   console.log('  ⚠️ API\'den hiç resim alanı gelmedi! Tüm alanlar:');
                   Object.keys(apiCar).forEach(key => {
                     const value = apiCar[key];
-                    // Sadece string ve boş olmayan değerleri göster
-                    if (typeof value === 'string' && value.trim() !== '') {
-                      console.log(`    ${key}:`, value);
-                    }
+                    console.log(`    ${key}:`, value, '(tip:', typeof value, ')');
                   });
                 }
               }
+              
+              // ÖNCE Image_Path'i kontrol et (API dokümantasyonunda belirtilen alan)
+              if (apiImagePath && 
+                  typeof apiImagePath === 'string' && 
+                  apiImagePath.trim() !== '' && 
+                  apiImagePath !== 'null' && 
+                  apiImagePath !== 'undefined' &&
+                  !apiImagePath.startsWith('data:image/svg+xml')) {
+                
+                let finalImageUrl;
+                if (apiImagePath.startsWith('http://') || apiImagePath.startsWith('https://')) {
+                  finalImageUrl = apiImagePath;
+                } else if (apiImagePath.startsWith('/')) {
+                  finalImageUrl = `http://xdrivejson.turevsistem.com${apiImagePath}`;
+                } else {
+                  finalImageUrl = `http://xdrivejson.turevsistem.com/${apiImagePath}`;
+                }
+                
+                if (availableCars.indexOf(car) === 0) {
+                  console.log('  ✅ Image_Path kullanılıyor:', finalImageUrl);
+                }
+                
+                return finalImageUrl;
+              }
+              
+              // Image_Path yoksa, grup bilgisinden resim al
+              const groupImage = groupInfo.imagePath;
               
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
                 // Eğer tam URL değilse, base URL ekle
