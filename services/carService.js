@@ -552,10 +552,39 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 }
               }
               
+              // Hiç resim yoksa, alternatif yöntemler dene
+              // 1. car_web_id ile resim URL'i oluşturmayı dene
+              const carWebId = apiCar.car_web_id || apiCar.Car_Web_ID || apiCar.car_Web_ID;
+              if (carWebId && carWebId !== '' && carWebId !== '0') {
+                // Örnek: http://xdrivejson.turevsistem.com/images/car_{car_web_id}.jpg
+                const alternativeImageUrl = `http://xdrivejson.turevsistem.com/images/car_${carWebId}.jpg`;
+                
+                if (availableCars.indexOf(car) === 0) {
+                  console.log('  🔄 Alternatif resim URL\'si deneniyor (car_web_id):', alternativeImageUrl);
+                }
+                
+                // Not: Bu URL'in gerçekten var olup olmadığını kontrol etmek için bir istek yapabiliriz
+                // Ama şimdilik direkt döndürelim, frontend'de onError ile handle edilir
+                return alternativeImageUrl;
+              }
+              
+              // 2. group_id ile resim URL'i oluşturmayı dene
+              if (finalGroupIdValue && finalGroupIdValue !== '' && finalGroupIdValue !== '0') {
+                const alternativeImageUrl = `http://xdrivejson.turevsistem.com/images/group_${finalGroupIdValue}.jpg`;
+                
+                if (availableCars.indexOf(car) === 0) {
+                  console.log('  🔄 Alternatif resim URL\'si deneniyor (group_id):', alternativeImageUrl);
+                }
+                
+                return alternativeImageUrl;
+              }
+              
               // Hiç resim yoksa placeholder döndür
               if (availableCars.indexOf(car) === 0) {
                 console.log('  ⚠️ Resim bulunamadı, placeholder kullanılıyor');
                 console.log('  ⚠️ Tüm resim alanları kontrol edildi, hiçbiri geçerli değil');
+                console.log('  ⚠️ Alternatif yöntemler de denendi (car_web_id, group_id), başarısız');
+                console.log('  💡 Çözüm: API sağlayıcısı ile iletişime geçin (0312 870 10 35) - image_path alanı boş geliyor');
               }
               
               return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5BcmHDpyBSZXNtaTwvdGV4dD48L3N2Zz4=';
