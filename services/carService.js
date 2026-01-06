@@ -422,9 +422,7 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               }
               
               // ÖNCE Image_Path'i kontrol et (API dokümantasyonunda belirtilen alan)
-              // API küçük harf gönderiyor: image_path (boş string olabilir)
-              const imagePathValue = apiCar.image_path || apiCar.Image_Path || apiCar.image_Path || apiCar.IMAGE_PATH;
-              
+              // API'den Image_Path geldiğinde KESINLIKLE kullanılacak (öncelikli)
               if (imagePathValue && 
                   typeof imagePathValue === 'string' && 
                   imagePathValue.trim() !== '' && 
@@ -432,32 +430,39 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   imagePathValue !== 'undefined' &&
                   !imagePathValue.startsWith('data:image/svg+xml')) {
                 
-                  let finalImageUrl;
-                  if (imagePathValue.startsWith('http://') || imagePathValue.startsWith('https://')) {
-                    finalImageUrl = imagePathValue;
-                  } else if (imagePathValue.startsWith('/')) {
-                    // HTTPS'i öncelikli kullan (sertifika hatası olabilir ama deneyelim)
-                    finalImageUrl = `https://xdrivejson.turevsistem.com${imagePathValue}`;
-                  } else {
-                    finalImageUrl = `https://xdrivejson.turevsistem.com/${imagePathValue}`;
-                  }
-                
-                if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Image_Path kullanılıyor:', finalImageUrl, '(kaynak:', imagePathValue, ')');
+                let finalImageUrl;
+                if (imagePathValue.startsWith('http://') || imagePathValue.startsWith('https://')) {
+                  // Tam URL ise direkt kullan
+                  finalImageUrl = imagePathValue;
+                } else if (imagePathValue.startsWith('/')) {
+                  // Relative path ise base URL ekle (önce HTTPS dene)
+                  finalImageUrl = `https://xdrivejson.turevsistem.com${imagePathValue}`;
+                } else {
+                  // Sadece path ise base URL ekle
+                  finalImageUrl = `https://xdrivejson.turevsistem.com/${imagePathValue}`;
                 }
                 
+                if (availableCars.indexOf(car) === 0) {
+                  console.log('  ✅ Image_Path API\'den geldi ve kullanılıyor:', finalImageUrl);
+                  console.log('  📋 Ham Image_Path değeri:', imagePathValue);
+                }
+                
+                // Image_Path geldiğinde KESINLIKLE bu değeri döndür (alternatif yöntemlere geçme)
                 return finalImageUrl;
               }
               
-              // Image_Path boşsa logla
+              // Image_Path boşsa logla ve uyar
               if (availableCars.indexOf(car) === 0) {
-                console.log('  ⚠️ Image_Path boş veya geçersiz:', {
+                console.log('  ⚠️ Image_Path boş veya geçersiz (API dokümantasyonunda belirtilmiş ama API\'den gelmiyor):', {
                   'image_path': apiCar.image_path,
                   'Image_Path': apiCar.Image_Path,
                   'image_Path': apiCar.image_Path,
                   'IMAGE_PATH': apiCar.IMAGE_PATH,
+                  'ImagePath': apiCar.ImagePath,
+                  'imagePath': apiCar.imagePath,
                   'değer': imagePathValue
                 });
+                console.log('  💡 API sağlayıcısı ile iletişime geçin (0312 870 10 35) - Image_Path alanı boş geliyor');
               }
               
               // Image_Path yoksa, grup bilgisinden resim al
