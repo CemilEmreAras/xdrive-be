@@ -432,14 +432,15 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   imagePathValue !== 'undefined' &&
                   !imagePathValue.startsWith('data:image/svg+xml')) {
                 
-                let finalImageUrl;
-                if (imagePathValue.startsWith('http://') || imagePathValue.startsWith('https://')) {
-                  finalImageUrl = imagePathValue;
-                } else if (imagePathValue.startsWith('/')) {
-                  finalImageUrl = `http://xdrivejson.turevsistem.com${imagePathValue}`;
-                } else {
-                  finalImageUrl = `http://xdrivejson.turevsistem.com/${imagePathValue}`;
-                }
+                  let finalImageUrl;
+                  if (imagePathValue.startsWith('http://') || imagePathValue.startsWith('https://')) {
+                    finalImageUrl = imagePathValue;
+                  } else if (imagePathValue.startsWith('/')) {
+                    // HTTPS'i öncelikli kullan (sertifika hatası olabilir ama deneyelim)
+                    finalImageUrl = `https://xdrivejson.turevsistem.com${imagePathValue}`;
+                  } else {
+                    finalImageUrl = `https://xdrivejson.turevsistem.com/${imagePathValue}`;
+                  }
                 
                 if (availableCars.indexOf(car) === 0) {
                   console.log('  ✅ Image_Path kullanılıyor:', finalImageUrl, '(kaynak:', imagePathValue, ')');
@@ -468,9 +469,10 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 if (groupImage.startsWith('http://') || groupImage.startsWith('https://')) {
                   finalImageUrl = groupImage;
                 } else if (groupImage.startsWith('/')) {
-                  finalImageUrl = `http://xdrivejson.turevsistem.com${groupImage}`;
+                  // HTTPS'i öncelikli kullan (sertifika hatası olabilir ama deneyelim)
+                  finalImageUrl = `https://xdrivejson.turevsistem.com${groupImage}`;
                 } else {
-                  finalImageUrl = `http://xdrivejson.turevsistem.com/${groupImage}`;
+                  finalImageUrl = `https://xdrivejson.turevsistem.com/${groupImage}`;
                 }
                 
                 if (availableCars.indexOf(car) === 0) {
@@ -554,22 +556,32 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               
               // Hiç resim yoksa, alternatif yöntemler dene
               // API'den resim gelmediği için farklı URL formatlarını deniyoruz
+              // NOT: API base URL'i HTTP kullanıyor ama tarayıcılar HTTPS zorlayabilir
+              // Bu yüzden hem HTTP hem HTTPS deniyoruz
+              
+              const baseUrl = 'http://xdrivejson.turevsistem.com';
+              const baseUrlHttps = 'https://xdrivejson.turevsistem.com';
               
               // 1. car_web_id ile resim URL'i oluşturmayı dene (farklı formatlar)
               const carWebId = apiCar.car_web_id || apiCar.Car_Web_ID || apiCar.car_Web_ID;
               if (carWebId && carWebId !== '' && carWebId !== '0') {
-                // Farklı URL formatlarını dene
+                // Farklı URL formatlarını dene (hem HTTP hem HTTPS)
                 const alternativeUrls = [
-                  `http://xdrivejson.turevsistem.com/images/car_${carWebId}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/car_${carWebId}.png`,
-                  `http://xdrivejson.turevsistem.com/cars/${carWebId}.jpg`,
-                  `http://xdrivejson.turevsistem.com/cars/${carWebId}.png`,
-                  `http://xdrivejson.turevsistem.com/arac/${carWebId}.jpg`,
-                  `http://xdrivejson.turevsistem.com/arac/${carWebId}.png`
+                  `${baseUrl}/images/car_${carWebId}.jpg`,
+                  `${baseUrlHttps}/images/car_${carWebId}.jpg`,
+                  `${baseUrl}/images/car_${carWebId}.png`,
+                  `${baseUrlHttps}/images/car_${carWebId}.png`,
+                  `${baseUrl}/cars/${carWebId}.jpg`,
+                  `${baseUrlHttps}/cars/${carWebId}.jpg`,
+                  `${baseUrl}/arac/${carWebId}.jpg`,
+                  `${baseUrlHttps}/arac/${carWebId}.jpg`,
+                  `${baseUrl}/car/${carWebId}.jpg`,
+                  `${baseUrlHttps}/car/${carWebId}.jpg`
                 ];
                 
                 // İlk URL'i döndür (frontend'de onError ile diğerleri denenebilir)
-                const alternativeImageUrl = alternativeUrls[0];
+                // HTTPS'i öncelikli kullan (sertifika hatası olabilir ama deneyelim)
+                const alternativeImageUrl = alternativeUrls[1] || alternativeUrls[0];
                 
                 if (availableCars.indexOf(car) === 0) {
                   console.log('  🔄 Alternatif resim URL\'leri deneniyor (car_web_id):', alternativeUrls);
@@ -582,15 +594,17 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               // 2. group_id ile resim URL'i oluşturmayı dene (farklı formatlar)
               if (finalGroupIdValue && finalGroupIdValue !== '' && finalGroupIdValue !== '0') {
                 const alternativeUrls = [
-                  `http://xdrivejson.turevsistem.com/images/group_${finalGroupIdValue}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/group_${finalGroupIdValue}.png`,
-                  `http://xdrivejson.turevsistem.com/groups/${finalGroupIdValue}.jpg`,
-                  `http://xdrivejson.turevsistem.com/groups/${finalGroupIdValue}.png`,
-                  `http://xdrivejson.turevsistem.com/grup/${finalGroupIdValue}.jpg`,
-                  `http://xdrivejson.turevsistem.com/grup/${finalGroupIdValue}.png`
+                  `${baseUrl}/images/group_${finalGroupIdValue}.jpg`,
+                  `${baseUrlHttps}/images/group_${finalGroupIdValue}.jpg`,
+                  `${baseUrl}/images/group_${finalGroupIdValue}.png`,
+                  `${baseUrlHttps}/images/group_${finalGroupIdValue}.png`,
+                  `${baseUrl}/groups/${finalGroupIdValue}.jpg`,
+                  `${baseUrlHttps}/groups/${finalGroupIdValue}.jpg`,
+                  `${baseUrl}/grup/${finalGroupIdValue}.jpg`,
+                  `${baseUrlHttps}/grup/${finalGroupIdValue}.jpg`
                 ];
                 
-                const alternativeImageUrl = alternativeUrls[0];
+                const alternativeImageUrl = alternativeUrls[1] || alternativeUrls[0];
                 
                 if (availableCars.indexOf(car) === 0) {
                   console.log('  🔄 Alternatif resim URL\'leri deneniyor (group_id):', alternativeUrls);
@@ -605,13 +619,15 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 // XML-6881452 -> 6881452
                 const rezIdClean = String(finalRezId).replace(/^XML-/, '').replace(/^xml-/i, '');
                 const alternativeUrls = [
-                  `http://xdrivejson.turevsistem.com/images/rez_${rezIdClean}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/rez_${rezIdClean}.png`,
-                  `http://xdrivejson.turevsistem.com/cars/${rezIdClean}.jpg`,
-                  `http://xdrivejson.turevsistem.com/cars/${rezIdClean}.png`
+                  `${baseUrl}/images/rez_${rezIdClean}.jpg`,
+                  `${baseUrlHttps}/images/rez_${rezIdClean}.jpg`,
+                  `${baseUrl}/images/rez_${rezIdClean}.png`,
+                  `${baseUrlHttps}/images/rez_${rezIdClean}.png`,
+                  `${baseUrl}/cars/${rezIdClean}.jpg`,
+                  `${baseUrlHttps}/cars/${rezIdClean}.jpg`
                 ];
                 
-                const alternativeImageUrl = alternativeUrls[0];
+                const alternativeImageUrl = alternativeUrls[1] || alternativeUrls[0];
                 
                 if (availableCars.indexOf(car) === 0) {
                   console.log('  🔄 Alternatif resim URL\'leri deneniyor (rez_id):', alternativeUrls);
