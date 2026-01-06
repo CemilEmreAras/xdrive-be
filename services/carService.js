@@ -134,9 +134,20 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
             }
           }
           
-          const groupId = apiCar.Group_ID || apiCar.group_ID || apiCar.GroupID;
+          // Group_ID'yi tüm olası varyasyonlardan al (API küçük harf gönderiyor: group_id)
+          const groupId = apiCar.group_id || apiCar.Group_ID || apiCar.group_ID || apiCar.GroupID || apiCar.groupID;
           // Hem string hem number olarak kontrol et
           const groupInfo = groupsMap[String(groupId)] || groupsMap[Number(groupId)] || groupsMap[groupId] || {};
+          
+          // Debug: Group_ID mapping kontrolü
+          if (availableCars.indexOf(car) === 0) {
+            console.log('🔍 Group_ID mapping kontrolü:');
+            console.log('  API\'den gelen group_id:', apiCar.group_id);
+            console.log('  API\'den gelen Group_ID:', apiCar.Group_ID);
+            console.log('  Bulunan groupId:', groupId);
+            console.log('  groupsMap\'te var mı:', groupsMap.hasOwnProperty(String(groupId)) || groupsMap.hasOwnProperty(Number(groupId)));
+            console.log('  GroupInfo:', Object.keys(groupInfo).length > 0 ? groupInfo : 'BULUNAMADI');
+          }
           
           // Debug: İlk araç için detaylı log (production'da kaldırılabilir)
           if (availableCars.indexOf(car) === 0) {
@@ -411,27 +422,41 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               }
               
               // ÖNCE Image_Path'i kontrol et (API dokümantasyonunda belirtilen alan)
-              if (apiImagePath && 
-                  typeof apiImagePath === 'string' && 
-                  apiImagePath.trim() !== '' && 
-                  apiImagePath !== 'null' && 
-                  apiImagePath !== 'undefined' &&
-                  !apiImagePath.startsWith('data:image/svg+xml')) {
+              // API küçük harf gönderiyor: image_path (boş string olabilir)
+              const imagePathValue = apiCar.image_path || apiCar.Image_Path || apiCar.image_Path || apiCar.IMAGE_PATH;
+              
+              if (imagePathValue && 
+                  typeof imagePathValue === 'string' && 
+                  imagePathValue.trim() !== '' && 
+                  imagePathValue !== 'null' && 
+                  imagePathValue !== 'undefined' &&
+                  !imagePathValue.startsWith('data:image/svg+xml')) {
                 
                 let finalImageUrl;
-                if (apiImagePath.startsWith('http://') || apiImagePath.startsWith('https://')) {
-                  finalImageUrl = apiImagePath;
-                } else if (apiImagePath.startsWith('/')) {
-                  finalImageUrl = `http://xdrivejson.turevsistem.com${apiImagePath}`;
+                if (imagePathValue.startsWith('http://') || imagePathValue.startsWith('https://')) {
+                  finalImageUrl = imagePathValue;
+                } else if (imagePathValue.startsWith('/')) {
+                  finalImageUrl = `http://xdrivejson.turevsistem.com${imagePathValue}`;
                 } else {
-                  finalImageUrl = `http://xdrivejson.turevsistem.com/${apiImagePath}`;
+                  finalImageUrl = `http://xdrivejson.turevsistem.com/${imagePathValue}`;
                 }
                 
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Image_Path kullanılıyor:', finalImageUrl);
+                  console.log('  ✅ Image_Path kullanılıyor:', finalImageUrl, '(kaynak:', imagePathValue, ')');
                 }
                 
                 return finalImageUrl;
+              }
+              
+              // Image_Path boşsa logla
+              if (availableCars.indexOf(car) === 0) {
+                console.log('  ⚠️ Image_Path boş veya geçersiz:', {
+                  'image_path': apiCar.image_path,
+                  'Image_Path': apiCar.Image_Path,
+                  'image_Path': apiCar.image_Path,
+                  'IMAGE_PATH': apiCar.IMAGE_PATH,
+                  'değer': imagePathValue
+                });
               }
               
               // Image_Path yoksa, grup bilgisinden resim al
