@@ -382,17 +382,20 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
             },
             image: (() => {
               // ÖNCE API dokümantasyonunda belirtilen Image_Path alanını kontrol et (öncelikli)
-              const apiImagePath = apiCar.Image_Path || apiCar.image_Path || apiCar.image_path || apiCar.IMAGE_PATH;
+              // Tüm olası Image_Path varyasyonlarını kontrol et
+              const imagePathValue = apiCar.Image_Path || apiCar.image_Path || apiCar.image_path || apiCar.IMAGE_PATH || apiCar.ImagePath || apiCar.imagePath;
               
               // Debug: İlk araç için resim bilgilerini logla
               if (availableCars.indexOf(car) === 0) {
                 console.log('🖼️ Resim bilgileri (İLK ARAÇ):');
-                console.log('  📋 API dokümantasyonunda belirtilen Image_Path:', apiImagePath);
+                console.log('  📋 API dokümantasyonunda belirtilen Image_Path:', imagePathValue);
                 console.log('  📋 Image_Path (tüm varyasyonlar):', {
                   'Image_Path': apiCar.Image_Path,
                   'image_Path': apiCar.image_Path,
                   'image_path': apiCar.image_path,
-                  'IMAGE_PATH': apiCar.IMAGE_PATH
+                  'IMAGE_PATH': apiCar.IMAGE_PATH,
+                  'ImagePath': apiCar.ImagePath,
+                  'imagePath': apiCar.imagePath
                 });
                 
                 // API'den gelen tüm resim alanlarını kontrol et
