@@ -20,11 +20,47 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 const groupIdStr = String(groupId);
                 const groupIdNum = Number(groupId);
                 
+                // Grup verisinden resim alanını bul (tüm olası alanları kontrol et)
+                const groupImageKeys = Object.keys(group).filter(k => {
+                  const lowerKey = k.toLowerCase();
+                  return lowerKey.includes('image') || 
+                         lowerKey.includes('img') || 
+                         lowerKey.includes('photo') ||
+                         lowerKey.includes('picture') ||
+                         lowerKey.includes('resim') ||
+                         lowerKey.includes('foto');
+                });
+                
+                let groupImagePath = '';
+                if (groupImageKeys.length > 0) {
+                  // İlk geçerli resim alanını bul
+                  for (const key of groupImageKeys) {
+                    const value = group[key];
+                    if (value && typeof value === 'string' && value.trim() !== '' && value !== 'null' && value !== 'undefined') {
+                      groupImagePath = value;
+                      break;
+                    }
+                  }
+                }
+                
+                // Eğer dinamik olarak bulunamadıysa, statik alanları kontrol et
+                if (!groupImagePath) {
+                  groupImagePath = group.image_path || group.Image_Path || group.image_Path || group.Image || group.image || '';
+                }
+                
+                // İlk grup için debug log
+                if (groups.indexOf(group) === 0) {
+                  console.log('🔍 İlk grup verisi:');
+                  console.log('  Tüm key\'ler:', Object.keys(group));
+                  console.log('  Resim ile ilgili key\'ler:', groupImageKeys);
+                  console.log('  Bulunan resim path:', groupImagePath);
+                }
+                
                 const groupData = {
                   brand: group.brand || group.Brand || '',
                   type: group.type || group.Type || '',
                   groupName: group.group_name || group.Group_Name || '',
-                  imagePath: group.image_path || group.Image_Path || group.image_Path || ''
+                  imagePath: groupImagePath
                 };
                 
                 // Hem string hem number key ile kaydet
@@ -74,6 +110,28 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
             console.log('🔍 API\'den gelen İLK ARAÇ VERİSİ (TÜM ALANLAR):');
             console.log(JSON.stringify(apiCar, null, 2));
             console.log('API\'den gelen key\'ler:', Object.keys(apiCar));
+            
+            // Resim ile ilgili TÜM alanları özellikle logla
+            const imageRelatedKeys = Object.keys(apiCar).filter(k => 
+              k.toLowerCase().includes('image') || 
+              k.toLowerCase().includes('img') || 
+              k.toLowerCase().includes('photo') ||
+              k.toLowerCase().includes('picture') ||
+              k.toLowerCase().includes('resim') ||
+              k.toLowerCase().includes('foto')
+            );
+            console.log('🖼️ Resim ile ilgili alanlar:', imageRelatedKeys);
+            imageRelatedKeys.forEach(key => {
+              console.log(`  ${key}:`, apiCar[key], '(tip:', typeof apiCar[key], ')');
+            });
+            
+            // Eğer resim alanı yoksa, tüm alanları göster
+            if (imageRelatedKeys.length === 0) {
+              console.log('⚠️ API\'den resim alanı gelmedi! Tüm alanlar:');
+              Object.keys(apiCar).forEach(key => {
+                console.log(`  ${key}:`, apiCar[key], '(tip:', typeof apiCar[key], ')');
+              });
+            }
           }
           
           const groupId = apiCar.Group_ID || apiCar.group_ID || apiCar.GroupID;
@@ -318,20 +376,35 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               // Debug: İlk araç için resim bilgilerini logla
               if (availableCars.indexOf(car) === 0) {
                 console.log('🖼️ Resim bilgileri:');
-                console.log('  GroupInfo:', groupInfo);
+                console.log('  GroupInfo:', JSON.stringify(groupInfo, null, 2));
                 console.log('  GroupImage:', groupImage);
-                console.log('  API Image_Path:', apiCar.Image_Path);
-                console.log('  API image_Path:', apiCar.image_Path);
-                console.log('  API image_path:', apiCar.image_path);
-                console.log('  API IMAGE_PATH:', apiCar.IMAGE_PATH);
-                console.log('  API Image:', apiCar.Image);
-                console.log('  API image:', apiCar.image);
-                console.log('  API tüm key\'ler:', Object.keys(apiCar).filter(k => 
+                
+                // API'den gelen tüm resim alanlarını kontrol et
+                const allImageKeys = Object.keys(apiCar).filter(k => 
                   k.toLowerCase().includes('image') || 
                   k.toLowerCase().includes('img') || 
                   k.toLowerCase().includes('photo') ||
-                  k.toLowerCase().includes('picture')
-                ));
+                  k.toLowerCase().includes('picture') ||
+                  k.toLowerCase().includes('resim') ||
+                  k.toLowerCase().includes('foto')
+                );
+                
+                console.log('  API\'den gelen resim alanları:', allImageKeys);
+                allImageKeys.forEach(key => {
+                  console.log(`    ${key}:`, apiCar[key], '(tip:', typeof apiCar[key], ')');
+                });
+                
+                // Eğer hiç resim alanı yoksa, tüm alanları göster
+                if (allImageKeys.length === 0) {
+                  console.log('  ⚠️ API\'den hiç resim alanı gelmedi! Tüm alanlar:');
+                  Object.keys(apiCar).forEach(key => {
+                    const value = apiCar[key];
+                    // Sadece string ve boş olmayan değerleri göster
+                    if (typeof value === 'string' && value.trim() !== '') {
+                      console.log(`    ${key}:`, value);
+                    }
+                  });
+                }
               }
               
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
@@ -353,7 +426,29 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               }
               
               // Grup resmi yoksa, API'den gelen resmi kontrol et (tüm olası alanları kontrol et)
-              const apiImageFields = [
+              // Önce API'den gelen tüm key'leri dinamik olarak kontrol et
+              const allApiKeys = Object.keys(apiCar);
+              const imageKeys = allApiKeys.filter(k => {
+                const lowerKey = k.toLowerCase();
+                return lowerKey.includes('image') || 
+                       lowerKey.includes('img') || 
+                       lowerKey.includes('photo') ||
+                       lowerKey.includes('picture') ||
+                       lowerKey.includes('resim') ||
+                       lowerKey.includes('foto');
+              });
+              
+              // Önce dinamik olarak bulunan key'leri kontrol et
+              const apiImageFields = [];
+              imageKeys.forEach(key => {
+                const value = apiCar[key];
+                if (value !== undefined && value !== null) {
+                  apiImageFields.push(value);
+                }
+              });
+              
+              // Sonra statik alanları da kontrol et (fallback)
+              const staticImageFields = [
                 apiCar.Image_Path,
                 apiCar.image_Path,
                 apiCar.image_path,
@@ -367,6 +462,13 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 apiCar.Picture,
                 apiCar.picture
               ];
+              
+              // Statik alanları da ekle (duplicate'leri önlemek için)
+              staticImageFields.forEach(field => {
+                if (field !== undefined && field !== null && !apiImageFields.includes(field)) {
+                  apiImageFields.push(field);
+                }
+              });
               
               // Tüm resim alanlarını kontrol et
               for (const apiImage of apiImageFields) {
