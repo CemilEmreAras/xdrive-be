@@ -318,7 +318,7 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               // Debug: İlk araç için resim bilgilerini logla
               if (availableCars.indexOf(car) === 0) {
                 console.log('🖼️ Resim bilgileri:');
-                console.log('  GroupInfo:', groupInfo);
+                console.log('  GroupInfo:', JSON.stringify(groupInfo, null, 2));
                 console.log('  GroupImage:', groupImage);
                 console.log('  API Image_Path:', apiCar.Image_Path);
                 console.log('  API image_Path:', apiCar.image_Path);
@@ -330,8 +330,12 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   k.toLowerCase().includes('image') || 
                   k.toLowerCase().includes('img') || 
                   k.toLowerCase().includes('photo') ||
-                  k.toLowerCase().includes('picture')
+                  k.toLowerCase().includes('picture') ||
+                  k.toLowerCase().includes('resim') ||
+                  k.toLowerCase().includes('foto')
                 ));
+                console.log('  🔍 API\'den gelen TÜM KEY\'LER:', Object.keys(apiCar));
+                console.log('  🔍 API\'den gelen TÜM VERİ:', JSON.stringify(apiCar, null, 2));
               }
               
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
