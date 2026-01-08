@@ -41,13 +41,12 @@ const corsOptions = {
   maxAge: 86400 // 24 saat
 };
 
-// CORS middleware - Vercel için özel (EN ÜSTTE - tüm isteklerden önce)
+// CORS middleware - Vercel için özel
 app.use((req, res, next) => {
-  // Tüm origin'lere izin ver
+  // Tüm origin'lere izin ver (production'da sınırlandırılabilir)
   const origin = req.headers.origin;
   
-  // CORS header'larını her zaman set et
-  if (origin) {
+  if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -58,13 +57,11 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
   
-  // OPTIONS isteği için hemen yanıt ver (preflight)
+  // OPTIONS isteği için hemen yanıt ver
   if (req.method === 'OPTIONS') {
-    console.log('✅ OPTIONS preflight request handled');
     return res.status(200).end();
   }
   
-  console.log(`✅ CORS headers set for ${req.method} ${req.path} from origin: ${origin || 'no origin'}`);
   next();
 });
 
@@ -76,6 +73,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/cars', require('./routes/cars'));
 app.use('/api/reservations', require('./routes/reservations'));
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/images', require('./routes/images'));
 
 // Chrome DevTools .well-known isteğini sessizce yok say
 app.get('/.well-known/*', (req, res) => {
@@ -107,7 +105,6 @@ if (process.env.VERCEL !== '1') {
   });
 }
 
-// Local development için export
-// Vercel'de api/index.js kullanılacak
+// Vercel serverless function export
 module.exports = app;
 

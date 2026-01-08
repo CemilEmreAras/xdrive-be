@@ -358,16 +358,20 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   
                   let finalImageUrl;
                   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-                    finalImageUrl = imagePath.replace('http://', 'https://');
+                    // Proxy URL kullan
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(imagePath)}`;
                   } else if (imagePath.startsWith('/')) {
-                    finalImageUrl = `https://xdrivejson.turevsistem.com${imagePath}`;
+                    // Proxy URL kullan
+                    const fullUrl = `http://xdrivejson.turevsistem.com${imagePath}`;
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                   } else {
-                    // Relative path ise base URL ekle
-                    finalImageUrl = `https://xdrivejson.turevsistem.com/${imagePath}`;
+                    // Relative path ise base URL ekle ve proxy kullan
+                    const fullUrl = `http://xdrivejson.turevsistem.com/${imagePath}`;
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                   }
                   
                   if (availableCars.indexOf(car) === 0) {
-                    console.log('  ✅ Image_Path kullanılıyor:', finalImageUrl, '(field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath), ')');
+                    console.log('  ✅ Image_Path kullanılıyor (proxy):', finalImageUrl, '(field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath), ')');
                   }
                   
                   return finalImageUrl;
@@ -379,15 +383,20 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
                 let finalImageUrl;
                 if (groupImage.startsWith('http://') || groupImage.startsWith('https://')) {
-                  finalImageUrl = groupImage.replace('http://', 'https://');
+                  // Proxy URL kullan
+                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(groupImage)}`;
                 } else if (groupImage.startsWith('/')) {
-                  finalImageUrl = `https://xdrivejson.turevsistem.com${groupImage}`;
+                  // Proxy URL kullan
+                  const fullUrl = `http://xdrivejson.turevsistem.com${groupImage}`;
+                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 } else {
-                  finalImageUrl = `https://xdrivejson.turevsistem.com/${groupImage}`;
+                  // Relative path ise base URL ekle ve proxy kullan
+                  const fullUrl = `http://xdrivejson.turevsistem.com/${groupImage}`;
+                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 }
                 
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Group image kullanılıyor:', finalImageUrl);
+                  console.log('  ✅ Group image kullanılıyor (proxy):', finalImageUrl);
                 }
                 
                 return finalImageUrl;
@@ -403,58 +412,62 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               // Alternatif image URL formatları (dökümantasyondaki ID'lere göre)
               const alternativeUrls = [];
               
-              // Group_ID ile resim URL'leri (dökümantasyonda Group_ID var)
+              // Group_ID ile resim URL'leri (dökümantasyonda Group_ID var) - Proxy kullan
               if (finalGroupId) {
                 const groupIdStr = String(finalGroupId);
-                alternativeUrls.push(
-                  `https://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
-                  `https://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
-                  `https://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
-                  `https://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
-                );
+                const groupUrls = [
+                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
+                ];
+                alternativeUrls.push(...groupUrls.map(url => `/api/images/proxy?url=${encodeURIComponent(url)}`));
               }
               
-              // Rez_ID ile resim URL'leri (dökümantasyonda Rez_ID var)
+              // Rez_ID ile resim URL'leri (dökümantasyonda Rez_ID var) - Proxy kullan
               if (rezId) {
                 const cleanRezId = String(rezId).replace('XML-', '');
-                alternativeUrls.push(
-                  `https://xdrivejson.turevsistem.com/images/rez_${cleanRezId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/rez_${cleanRezId}.png`,
-                  `https://xdrivejson.turevsistem.com/cars/rez_${cleanRezId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/cars/rez_${cleanRezId}.png`,
-                  `https://xdrivejson.turevsistem.com/images/${cleanRezId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/${cleanRezId}.png`
-                );
+                const rezUrls = [
+                  `http://xdrivejson.turevsistem.com/images/rez_${cleanRezId}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/rez_${cleanRezId}.png`,
+                  `http://xdrivejson.turevsistem.com/cars/rez_${cleanRezId}.jpg`,
+                  `http://xdrivejson.turevsistem.com/cars/rez_${cleanRezId}.png`,
+                  `http://xdrivejson.turevsistem.com/images/${cleanRezId}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/${cleanRezId}.png`
+                ];
+                alternativeUrls.push(...rezUrls.map(url => `/api/images/proxy?url=${encodeURIComponent(url)}`));
               }
               
-              // Cars_Park_ID ile resim URL'leri (dökümantasyonda Cars_Park_ID var)
+              // Cars_Park_ID ile resim URL'leri (dökümantasyonda Cars_Park_ID var) - Proxy kullan
               if (carsParkId) {
                 const carsParkIdStr = String(carsParkId);
-                alternativeUrls.push(
-                  `https://xdrivejson.turevsistem.com/images/car_${carsParkIdStr}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/car_${carsParkIdStr}.png`,
-                  `https://xdrivejson.turevsistem.com/cars/${carsParkIdStr}.jpg`,
-                  `https://xdrivejson.turevsistem.com/cars/${carsParkIdStr}.png`
-                );
+                const carsParkUrls = [
+                  `http://xdrivejson.turevsistem.com/images/car_${carsParkIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/car_${carsParkIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/cars/${carsParkIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/cars/${carsParkIdStr}.png`
+                ];
+                alternativeUrls.push(...carsParkUrls.map(url => `/api/images/proxy?url=${encodeURIComponent(url)}`));
               }
               
-              // car_web_id ile resim URL'leri (eğer varsa)
+              // car_web_id ile resim URL'leri (eğer varsa) - Proxy kullan
               if (carWebId) {
                 const carWebIdStr = String(carWebId);
-                alternativeUrls.push(
-                  `https://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.png`,
-                  `https://xdrivejson.turevsistem.com/cars/${carWebIdStr}.jpg`,
-                  `https://xdrivejson.turevsistem.com/cars/${carWebIdStr}.png`
-                );
+                const carWebUrls = [
+                  `http://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/cars/${carWebIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/cars/${carWebIdStr}.png`
+                ];
+                alternativeUrls.push(...carWebUrls.map(url => `/api/images/proxy?url=${encodeURIComponent(url)}`));
               }
               
               // İlk alternatif URL'i döndür (frontend'de fallback mekanizması var)
               if (alternativeUrls.length > 0) {
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  🔄 Alternatif resim URL\'leri deneniyor (dökümantasyondaki ID\'lere göre):');
+                  console.log('  🔄 Alternatif resim URL\'leri deneniyor (proxy ile):');
                   console.log('    Group_ID:', finalGroupId);
                   console.log('    Rez_ID:', rezId);
                   console.log('    Cars_Park_ID:', carsParkId);
