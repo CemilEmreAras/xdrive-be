@@ -373,7 +373,30 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 return finalImageUrl;
               }
               
-              // ÖNCELİK 2: Dökümantasyona göre: JsonRez.aspx'ten Image_Path field'ı geliyor
+              // ÖNCELİK 2: Groups endpoint'inden group_id ile resim URL'i oluştur (groupInfo yoksa bile)
+              // Eğer groupInfo yoksa ama group_id varsa, yine de group_id ile URL oluştur
+              if (finalGroupId) {
+                const groupIdStr = String(finalGroupId);
+                const groupImageUrls = [
+                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
+                ];
+                
+                const firstGroupUrl = groupImageUrls[0];
+                const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(firstGroupUrl)}`;
+                
+                if (availableCars.indexOf(car) === 0) {
+                  console.log('  ✅ Group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ')');
+                }
+                
+                return finalImageUrl;
+              }
+              
+              // ÖNCELİK 3: JsonRez.aspx'ten Image_Path field'ı (düşük öncelik - sadece Groups'da yoksa)
               // API'den gelen Image_Path'i kontrol et (tüm case varyasyonları)
               const imagePathFields = [
                 apiCar.Image_Path,      // Dökümantasyonda belirtilen field
@@ -443,7 +466,7 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 }
               }
               
-              // ÖNCELİK 3: Image_Path ve grup resmi yoksa, alternatif URL formatlarını dene
+              // ÖNCELİK 4: Image_Path ve grup resmi yoksa, alternatif URL formatlarını dene
               // Dökümantasyona göre: Cars_Park_ID, Group_ID, Rez_ID mevcut
               const carsParkId = apiCar.Cars_Park_ID || apiCar.cars_Park_ID || apiCar.cars_park_id || apiCar.CarsParkID;
               const rezId = apiCar.Rez_ID || apiCar.rez_ID || apiCar.rez_id || apiCar.RezID;
