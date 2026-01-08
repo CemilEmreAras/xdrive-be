@@ -357,21 +357,24 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                     !imagePath.startsWith('data:image/svg+xml')) {
                   
                   let finalImageUrl;
-                  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                  // Önce HTTPS varsa HTTP'ye çevir (SSL sorunu olmaması için)
+                  let cleanImagePath = imagePath.replace('https://', 'http://');
+                  
+                  if (cleanImagePath.startsWith('http://')) {
                     // Proxy URL kullan
-                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(imagePath)}`;
-                  } else if (imagePath.startsWith('/')) {
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanImagePath)}`;
+                  } else if (cleanImagePath.startsWith('/')) {
                     // Proxy URL kullan
-                    const fullUrl = `http://xdrivejson.turevsistem.com${imagePath}`;
+                    const fullUrl = `http://xdrivejson.turevsistem.com${cleanImagePath}`;
                     finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                   } else {
                     // Relative path ise base URL ekle ve proxy kullan
-                    const fullUrl = `http://xdrivejson.turevsistem.com/${imagePath}`;
+                    const fullUrl = `http://xdrivejson.turevsistem.com/${cleanImagePath}`;
                     finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                   }
                   
                   if (availableCars.indexOf(car) === 0) {
-                    console.log('  ✅ Image_Path kullanılıyor (proxy):', finalImageUrl, '(field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath), ')');
+                    console.log('  ✅ Image_Path kullanılıyor (proxy):', finalImageUrl, '(orijinal:', imagePath, ', field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath), ')');
                   }
                   
                   return finalImageUrl;
@@ -459,7 +462,9 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   `http://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.jpg`,
                   `http://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.png`,
                   `http://xdrivejson.turevsistem.com/cars/${carWebIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/cars/${carWebIdStr}.png`
+                  `http://xdrivejson.turevsistem.com/cars/${carWebIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/arac/${carWebIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/arac/${carWebIdStr}.png`
                 ];
                 alternativeUrls.push(...carWebUrls.map(url => `/api/images/proxy?url=${encodeURIComponent(url)}`));
               }
