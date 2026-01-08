@@ -339,6 +339,32 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 return finalImageUrl;
               }
               
+              // ÖNCELİK 1.5: Groups endpoint'inden image_path boş ise, group_id kullanarak URL oluştur
+              // Groups JSON formatına göre: group_id kullanarak resim URL'i oluştur
+              const finalGroupId = groupId || apiCar.Group_ID || apiCar.group_ID || apiCar.group_id || apiCar.GroupID;
+              if (finalGroupId && groupInfo && Object.keys(groupInfo).length > 0) {
+                // Groups endpoint'inden gelen group_id ile resim URL'i oluştur
+                const groupIdStr = String(finalGroupId);
+                const groupImageUrls = [
+                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
+                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
+                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
+                ];
+                
+                // İlk URL'i proxy ile döndür
+                const firstGroupUrl = groupImageUrls[0];
+                const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(firstGroupUrl)}`;
+                
+                if (availableCars.indexOf(car) === 0) {
+                  console.log('  ✅ Groups group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ')');
+                }
+                
+                return finalImageUrl;
+              }
+              
               // ÖNCELİK 2: Dökümantasyona göre: JsonRez.aspx'ten Image_Path field'ı geliyor
               // API'den gelen Image_Path'i kontrol et (tüm case varyasyonları)
               const imagePathFields = [
@@ -409,18 +435,18 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 }
               }
               
-              // Image_Path ve grup resmi yoksa, alternatif URL formatlarını dene
+              // ÖNCELİK 3: Image_Path ve grup resmi yoksa, alternatif URL formatlarını dene
               // Dökümantasyona göre: Cars_Park_ID, Group_ID, Rez_ID mevcut
               const carsParkId = apiCar.Cars_Park_ID || apiCar.cars_Park_ID || apiCar.cars_park_id || apiCar.CarsParkID;
-              const finalGroupId = groupId || apiCar.Group_ID || apiCar.group_ID || apiCar.group_id || apiCar.GroupID;
               const rezId = apiCar.Rez_ID || apiCar.rez_ID || apiCar.rez_id || apiCar.RezID;
               const carWebId = apiCar.car_web_id || apiCar.Car_Web_ID || apiCar.car_Web_ID;
               
               // Alternatif image URL formatları (dökümantasyondaki ID'lere göre)
               const alternativeUrls = [];
               
-              // Group_ID ile resim URL'leri (dökümantasyonda Group_ID var) - Proxy kullan
-              if (finalGroupId) {
+              // Group_ID ile resim URL'leri (eğer groups endpoint'inden gelmediyse) - Proxy kullan
+              // Not: Groups endpoint'inden group_id zaten yukarıda kontrol edildi, burada sadece fallback
+              if (finalGroupId && (!groupInfo || Object.keys(groupInfo).length === 0)) {
                 const groupIdStr = String(finalGroupId);
                 const groupUrls = [
                   `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
