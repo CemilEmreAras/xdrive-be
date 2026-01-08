@@ -385,21 +385,24 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               const groupImage = groupInfo.imagePath;
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
                 let finalImageUrl;
-                if (groupImage.startsWith('http://') || groupImage.startsWith('https://')) {
+                // Önce HTTPS varsa HTTP'ye çevir (SSL sorunu olmaması için)
+                let cleanGroupImage = groupImage.replace('https://', 'http://');
+                
+                if (cleanGroupImage.startsWith('http://')) {
                   // Proxy URL kullan
-                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(groupImage)}`;
-                } else if (groupImage.startsWith('/')) {
+                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanGroupImage)}`;
+                } else if (cleanGroupImage.startsWith('/')) {
                   // Proxy URL kullan
-                  const fullUrl = `http://xdrivejson.turevsistem.com${groupImage}`;
+                  const fullUrl = `http://xdrivejson.turevsistem.com${cleanGroupImage}`;
                   finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 } else {
                   // Relative path ise base URL ekle ve proxy kullan
-                  const fullUrl = `http://xdrivejson.turevsistem.com/${groupImage}`;
+                  const fullUrl = `http://xdrivejson.turevsistem.com/${cleanGroupImage}`;
                   finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 }
                 
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Group image kullanılıyor (proxy):', finalImageUrl);
+                  console.log('  ✅ Group image kullanılıyor (proxy):', finalImageUrl, '(orijinal:', groupImage, ')');
                 }
                 
                 return finalImageUrl;
