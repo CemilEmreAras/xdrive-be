@@ -319,16 +319,24 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 // Önce HTTPS varsa HTTP'ye çevir (SSL sorunu olmaması için)
                 let cleanGroupImage = groupImage.replace('https://', 'http://');
                 
-                if (cleanGroupImage.startsWith('http://')) {
-                  // Proxy URL kullan
+                if (cleanGroupImage.startsWith('http://') || cleanGroupImage.startsWith('https://')) {
+                  // Tam URL ise direkt kullan
                   finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanGroupImage)}`;
                 } else if (cleanGroupImage.startsWith('/')) {
-                  // Proxy URL kullan
+                  // Absolute path ise base URL ekle
                   const fullUrl = `http://xdrivejson.turevsistem.com${cleanGroupImage}`;
                   finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 } else {
-                  // Relative path ise base URL ekle ve proxy kullan
-                  const fullUrl = `http://xdrivejson.turevsistem.com/${cleanGroupImage}`;
+                  // Relative path veya dosya adı ise (örn: "40148f19-3c9b-4499-804e-a49991f216b0-.png")
+                  // Önce /images/ path'ini dene, sonra root'a ekle
+                  let fullUrl;
+                  if (cleanGroupImage.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                    // Dosya uzantısı varsa, /images/ path'ine ekle
+                    fullUrl = `http://xdrivejson.turevsistem.com/images/${cleanGroupImage}`;
+                  } else {
+                    // Uzantı yoksa direkt root'a ekle
+                    fullUrl = `http://xdrivejson.turevsistem.com/${cleanGroupImage}`;
+                  }
                   finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 }
                 
