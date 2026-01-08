@@ -393,46 +393,72 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 return finalImageUrl;
               }
               
-              // Hiç resim yoksa, alternatif URL formatlarını dene
+              // Image_Path ve grup resmi yoksa, alternatif URL formatlarını dene
+              // Dökümantasyona göre: Cars_Park_ID, Group_ID, Rez_ID mevcut
+              const carsParkId = apiCar.Cars_Park_ID || apiCar.cars_Park_ID || apiCar.cars_park_id || apiCar.CarsParkID;
+              const finalGroupId = groupId || apiCar.Group_ID || apiCar.group_ID || apiCar.group_id || apiCar.GroupID;
+              const rezId = apiCar.Rez_ID || apiCar.rez_ID || apiCar.rez_id || apiCar.RezID;
               const carWebId = apiCar.car_web_id || apiCar.Car_Web_ID || apiCar.car_Web_ID;
-              const finalGroupId = groupId || apiCar.group_id || apiCar.Group_ID || apiCar.group_ID;
-              const rezId = apiCar.rez_id || apiCar.Rez_ID || apiCar.rez_ID;
               
-              // Alternatif image URL formatları
+              // Alternatif image URL formatları (dökümantasyondaki ID'lere göre)
               const alternativeUrls = [];
               
-              if (carWebId) {
-                alternativeUrls.push(
-                  `https://xdrivejson.turevsistem.com/images/car_${carWebId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/car_${carWebId}.png`,
-                  `https://xdrivejson.turevsistem.com/cars/${carWebId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/cars/${carWebId}.png`
-                );
-              }
-              
+              // Group_ID ile resim URL'leri (dökümantasyonda Group_ID var)
               if (finalGroupId) {
+                const groupIdStr = String(finalGroupId);
                 alternativeUrls.push(
-                  `https://xdrivejson.turevsistem.com/images/group_${finalGroupId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/images/group_${finalGroupId}.png`,
-                  `https://xdrivejson.turevsistem.com/groups/${finalGroupId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/groups/${finalGroupId}.png`
+                  `https://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
+                  `https://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
+                  `https://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
+                  `https://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
+                  `https://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
+                  `https://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
                 );
               }
               
+              // Rez_ID ile resim URL'leri (dökümantasyonda Rez_ID var)
               if (rezId) {
                 const cleanRezId = String(rezId).replace('XML-', '');
                 alternativeUrls.push(
                   `https://xdrivejson.turevsistem.com/images/rez_${cleanRezId}.jpg`,
                   `https://xdrivejson.turevsistem.com/images/rez_${cleanRezId}.png`,
                   `https://xdrivejson.turevsistem.com/cars/rez_${cleanRezId}.jpg`,
-                  `https://xdrivejson.turevsistem.com/cars/rez_${cleanRezId}.png`
+                  `https://xdrivejson.turevsistem.com/cars/rez_${cleanRezId}.png`,
+                  `https://xdrivejson.turevsistem.com/images/${cleanRezId}.jpg`,
+                  `https://xdrivejson.turevsistem.com/images/${cleanRezId}.png`
+                );
+              }
+              
+              // Cars_Park_ID ile resim URL'leri (dökümantasyonda Cars_Park_ID var)
+              if (carsParkId) {
+                const carsParkIdStr = String(carsParkId);
+                alternativeUrls.push(
+                  `https://xdrivejson.turevsistem.com/images/car_${carsParkIdStr}.jpg`,
+                  `https://xdrivejson.turevsistem.com/images/car_${carsParkIdStr}.png`,
+                  `https://xdrivejson.turevsistem.com/cars/${carsParkIdStr}.jpg`,
+                  `https://xdrivejson.turevsistem.com/cars/${carsParkIdStr}.png`
+                );
+              }
+              
+              // car_web_id ile resim URL'leri (eğer varsa)
+              if (carWebId) {
+                const carWebIdStr = String(carWebId);
+                alternativeUrls.push(
+                  `https://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.jpg`,
+                  `https://xdrivejson.turevsistem.com/images/car_${carWebIdStr}.png`,
+                  `https://xdrivejson.turevsistem.com/cars/${carWebIdStr}.jpg`,
+                  `https://xdrivejson.turevsistem.com/cars/${carWebIdStr}.png`
                 );
               }
               
               // İlk alternatif URL'i döndür (frontend'de fallback mekanizması var)
               if (alternativeUrls.length > 0) {
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  🔄 Alternatif resim URL\'leri deneniyor:', alternativeUrls[0]);
+                  console.log('  🔄 Alternatif resim URL\'leri deneniyor (dökümantasyondaki ID\'lere göre):');
+                  console.log('    Group_ID:', finalGroupId);
+                  console.log('    Rez_ID:', rezId);
+                  console.log('    Cars_Park_ID:', carsParkId);
+                  console.log('    İlk URL:', alternativeUrls[0]);
                 }
                 return alternativeUrls[0];
               }
@@ -440,7 +466,13 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               // Hiç resim yoksa placeholder döndür
               if (availableCars.indexOf(car) === 0) {
                 console.log('  ⚠️ Resim bulunamadı, placeholder kullanılıyor');
-                console.log('  ⚠️ Tüm resim alanları kontrol edildi, hiçbiri geçerli değil');
+                console.log('  ⚠️ Image_Path, grup resmi ve alternatif URL\'ler kontrol edildi, hiçbiri geçerli değil');
+                console.log('  ⚠️ Mevcut ID\'ler:', {
+                  'Group_ID': finalGroupId,
+                  'Rez_ID': rezId,
+                  'Cars_Park_ID': carsParkId,
+                  'car_web_id': carWebId
+                });
               }
               
               return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5BcmHDpyBSZXNtaTwvdGV4dD48L3N2Zz4=';
