@@ -14,10 +14,12 @@ router.get('/proxy', async (req, res) => {
     // URL'i decode et
     const imageUrl = decodeURIComponent(url);
     
-    // Güvenlik: Sadece xdrivejson.turevsistem.com domain'inden image'ler alınsın
-    if (!imageUrl.includes('xdrivejson.turevsistem.com')) {
-      return res.status(403).json({ error: 'Invalid image source' });
-    }
+          // Güvenlik: Sadece izin verilen domain'lerden image'ler alınsın
+          const allowedDomains = ['xdrivejson.turevsistem.com', 't1.trvcar.com', 'trvcar.com'];
+          const isAllowedDomain = allowedDomains.some(domain => imageUrl.includes(domain));
+          if (!isAllowedDomain) {
+            return res.status(403).json({ error: 'Invalid image source' });
+          }
     
     // HTTP kullan (SSL sertifika sorunu olmadığı için)
     const httpUrl = imageUrl.replace('https://', 'http://');
