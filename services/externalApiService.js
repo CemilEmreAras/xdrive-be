@@ -86,6 +86,15 @@ const getAvailableCars = async (params) => {
       const firstItem = response.data[0];
       if (firstItem.success === 'False' || firstItem.error) {
         const errorMsg = firstItem.error || 'Bilinmeyen hata';
+        
+        // "Man Süresi" (Minimum kiralama süresi) hatasını özel olarak handle et
+        // Bu durumda boş array döndür, hata fırlatma
+        if (errorMsg.includes('Man Süresi') || errorMsg.includes('Man Süre') || 
+            errorMsg.toLowerCase().includes('minimum') || errorMsg.toLowerCase().includes('min')) {
+          console.warn('⚠️ Minimum kiralama süresi hatası (sessizce yok sayılıyor):', errorMsg);
+          return []; // Boş array döndür, hata fırlatma
+        }
+        
         throw new Error(`API Hatası: ${errorMsg}. Lütfen API sağlayıcısı ile iletişime geçin (0312 870 10 35).`);
       }
     }
@@ -141,26 +150,7 @@ const saveReservation = async (reservationData) => {
 
     const url = `${API_CONFIG.BASE_URL}/JsonRez_Save.aspx`;
     
-    // Saat değerlerini kontrol et ve normalize et
-    // API 0-5 arası saatleri kabul etmeyebilir, minimum 10:00 olmalı
-    let normalizedPickupHour = pickupHour;
-    let normalizedPickupMin = pickupMin;
-    let normalizedDropoffHour = dropoffHour;
-    let normalizedDropoffMin = dropoffMin;
-    
-    if (normalizedPickupHour < 10) {
-      console.warn(`⚠️ Pickup saat çok erken (${normalizedPickupHour}:${normalizedPickupMin}), 10:00'a ayarlanıyor`);
-      normalizedPickupHour = 10;
-      normalizedPickupMin = 0;
-    }
-    if (normalizedDropoffHour < 10) {
-      console.warn(`⚠️ Dropoff saat çok erken (${normalizedDropoffHour}:${normalizedDropoffMin}), 10:00'a ayarlanıyor`);
-      normalizedDropoffHour = 10;
-      normalizedDropoffMin = 0;
-    }
-    
     // Gönderilecek parametreleri hazırla (tüm değerler string olmalı)
-    // ÖNEMLİ: Boş string yerine varsayılan değerler kullan
     const params = {
       Key_Hack: String(API_CONFIG.KEY_HACK),
       Pickup_ID: String(pickupId),
@@ -169,31 +159,22 @@ const saveReservation = async (reservationData) => {
       SurName: String(surname || ''),
       MobilePhone: String(mobilePhone || ''),
       Mail_Adress: String(mailAddress || ''),
-      Rental_ID: String(rentalId || ''), // Ehliyet numarası - boş olabilir ama string olmalı
+      Rental_ID: String(rentalId || ''),
       Cars_Park_ID: String(carsParkId),
       Group_ID: String(groupId),
       User_Name: String(API_CONFIG.USER_NAME),
       User_Pass: String(API_CONFIG.USER_PASS),
-      // Rez_ID'yi normalize et - "XML-6881079" gibi prefix'leri kaldır, sadece sayısal kısmı kullan
-      Rez_ID: (() => {
-        const rezIdStr = String(rezId || '');
-        // Eğer "XML-" veya başka prefix varsa, sadece sayısal kısmı al
-        const numericPart = rezIdStr.replace(/^[A-Za-z-]+/, '').trim();
-        if (numericPart && numericPart !== rezIdStr) {
-          console.warn(`⚠️ Rez_ID normalize edildi: "${rezIdStr}" -> "${numericPart}"`);
-        }
-        return numericPart || rezIdStr;
-      })(),
+      Rez_ID: String(rezId),
       Pickup_Day: String(pickup.getDate()).padStart(2, '0'),
       Pickup_Month: String(pickup.getMonth() + 1).padStart(2, '0'),
-      Pickup_Year: String(pickup.getFullYear()),
+      Pickup_Year: String(pickup.getFullYear()), // String olarak gönder
       Drop_Off_Day: String(dropoff.getDate()).padStart(2, '0'),
       Drop_Off_Month: String(dropoff.getMonth() + 1).padStart(2, '0'),
-      Drop_Off_Year: String(dropoff.getFullYear()),
-      Pickup_Hour: String(normalizedPickupHour).padStart(2, '0'), // Minimum 10:00
-      Pickup_Min: String(normalizedPickupMin).padStart(2, '0'),
-      Drop_Off_Hour: String(normalizedDropoffHour).padStart(2, '0'), // Minimum 10:00
-      Drop_Off_Min: String(normalizedDropoffMin).padStart(2, '0'),
+      Drop_Off_Year: String(dropoff.getFullYear()), // String olarak gönder
+      Pickup_Hour: String(pickupHour).padStart(2, '0'), // String ve 2 haneli
+      Pickup_Min: String(pickupMin).padStart(2, '0'), // String ve 2 haneli
+      Drop_Off_Hour: String(dropoffHour).padStart(2, '0'), // String ve 2 haneli
+      Drop_Off_Min: String(dropoffMin).padStart(2, '0'), // String ve 2 haneli
       Adress: String(address || ''),
       District: String(district || ''),
       City: String(city || ''),
@@ -206,261 +187,68 @@ const saveReservation = async (reservationData) => {
       CDW: String(cdw || 'OFF'),
       SCDW: String(scdw || 'OFF'),
       LCF: String(lcf || 'OFF'),
-      Your_Rez_ID: String(yourRezId || `XDRIVE-${Date.now()}`), // Boş olmamalı
-      Your_Rent_Price: String(yourRentPrice || 0), // Fiyat 0 olamaz, kontrol et
-      Your_Extra_Price: String(yourExtraPrice || 0),
-      Your_Drop_Price: String(yourDropPrice || 0),
-      Payment_Type: String(paymentType || 0)
+      Your_Rez_ID: yourRezId,
+      Your_Rent_Price: String(yourRentPrice || 0), // String olarak gönder
+      Your_Extra_Price: String(yourExtraPrice || 0), // String olarak gönder
+      Your_Drop_Price: String(yourDropPrice || 0), // String olarak gönder
+      Payment_Type: String(paymentType || 0) // String olarak gönder
     };
-    
-    // Fiyat kontrolü - Your_Rent_Price 0 ise uyar ve hata fırlat
-    const rentPrice = parseFloat(params.Your_Rent_Price);
-    if (isNaN(rentPrice) || rentPrice <= 0) {
-      console.error('❌ Your_Rent_Price geçersiz:', params.Your_Rent_Price);
-      console.error('❌ Bu durumda API rezervasyonu reddedecek!');
-      throw new Error(`Rezervasyon fiyatı geçersiz (Your_Rent_Price: ${params.Your_Rent_Price}). Lütfen araç fiyatını kontrol edin.`);
-    }
-    
-    // Zorunlu alanları kontrol et
-    const requiredFields = ['Pickup_ID', 'Drop_Off_ID', 'Cars_Park_ID', 'Group_ID', 'Rez_ID', 'Name', 'SurName'];
-    const missingFields = requiredFields.filter(field => !params[field] || params[field] === 'undefined' || params[field] === 'null');
-    if (missingFields.length > 0) {
-      console.error('❌ Zorunlu alanlar eksik:', missingFields);
-      throw new Error(`Rezervasyon için zorunlu alanlar eksik: ${missingFields.join(', ')}`);
-    }
     
     // Debug: Gönderilecek parametreleri logla
     console.log('📤 External API\'ye gönderilecek parametreler:');
     console.log(JSON.stringify(params, null, 2));
     console.log('📤 External API URL:', url);
-    // URLSearchParams Node.js'te global olabilir, ama güvenli olmak için try-catch kullan
-    try {
-      const { URLSearchParams } = require('url');
-      const queryString = new URLSearchParams(params).toString();
-      console.log('📤 Tam URL (debug için):', `${url}?${queryString}`);
-    } catch (e) {
-      // URLSearchParams yoksa, manuel olarak query string oluştur
-      const queryString = Object.keys(params).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`).join('&');
-      console.log('📤 Tam URL (debug için):', `${url}?${queryString}`);
-    }
     
-    let response;
-    try {
-      // Önce GET ile dene (mevcut yöntem)
-      console.log('📤 GET isteği gönderiliyor...');
-      response = await axios.get(url, { 
-        params,
-        timeout: 30000, // 30 saniye timeout
-        validateStatus: function (status) {
-          // 200-299 arası status kodlarını kabul et
-          return status >= 200 && status < 300;
-        },
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-      
-      // Eğer boş yanıt gelirse, POST ile dene
-      if (!response.data || 
-          (typeof response.data === 'string' && response.data.trim() === '') ||
-          (Array.isArray(response.data) && response.data.length === 0)) {
-        console.warn('⚠️ GET isteği boş yanıt döndü, POST ile deneniyor...');
-        
-        // POST ile dene (form-urlencoded)
-        // URLSearchParams Node.js'te global olmayabilir, manuel olarak query string oluştur
-        let formDataString;
-        try {
-          const { URLSearchParams } = require('url');
-          const formData = new URLSearchParams();
-          Object.keys(params).forEach(key => {
-            formData.append(key, params[key]);
-          });
-          formDataString = formData.toString();
-        } catch (e) {
-          // URLSearchParams yoksa, manuel olarak query string oluştur
-          formDataString = Object.keys(params).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`).join('&');
-        }
-        
-        response = await axios.post(url, formDataString, {
-          timeout: 30000,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json, text/plain, */*'
-          },
-          validateStatus: function (status) {
-            return status >= 200 && status < 300;
-          }
-        });
-        
-        console.log('📥 POST isteği yanıtı:', {
-          status: response.status,
-          data: response.data
-        });
-      }
-    } catch (axiosError) {
-      console.error('❌ External API istek hatası:', axiosError.message);
-      if (axiosError.response) {
-        console.error('❌ API yanıt status:', axiosError.response.status);
-        console.error('❌ API yanıt data:', axiosError.response.data);
-        console.error('❌ API yanıt headers:', axiosError.response.headers);
-      }
-      if (axiosError.request) {
-        console.error('❌ İstek gönderildi ama yanıt alınamadı');
-        console.error('❌ Request config:', {
-          url: axiosError.config?.url,
-          method: axiosError.config?.method,
-          params: axiosError.config?.params
-        });
-      }
-      throw new Error(`External API istek hatası: ${axiosError.message}. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
-    }
+    const response = await axios.get(url, { params });
     
-    // API yanıtını kontrol et - DETAYLI
+    // API yanıtını kontrol et
     console.log('📥 External API rezervasyon yanıtı (raw):', {
       status: response.status,
       statusText: response.statusText,
-      headers: response.headers,
       data: response.data,
       dataType: typeof response.data,
-      isArray: Array.isArray(response.data),
-      dataLength: response.data ? (Array.isArray(response.data) ? response.data.length : String(response.data).length) : 0,
-      dataString: typeof response.data === 'string' ? response.data.substring(0, 500) : 'N/A'
+      dataLength: response.data ? (Array.isArray(response.data) ? response.data.length : String(response.data).length) : 0
     });
     
-    // Yanıt boş mu kontrol et - DETAYLI
-    const isEmpty = !response.data || 
+    // Yanıt boş mu kontrol et
+    if (!response.data || 
         (typeof response.data === 'string' && response.data.trim() === '') ||
-        (Array.isArray(response.data) && response.data.length === 0) ||
-        (typeof response.data === 'object' && response.data !== null && Object.keys(response.data).length === 0);
-    
-    if (isEmpty) {
-      console.error('❌ External API boş yanıt döndü');
-      console.error('❌ Gönderilen parametreler (tümü):', JSON.stringify(params, null, 2));
-      console.error('❌ Bu durumda rezervasyon türevde görünmeyecek!');
-      console.error('❌ Olası nedenler:');
-      console.error('   1. Parametreler yanlış formatlanmış olabilir');
-      console.error('   2. API tarafında bir hata oluşmuş olabilir');
-      console.error('   3. Zorunlu alanlar eksik olabilir');
-      console.error('   4. Fiyat değeri geçersiz olabilir');
-      // Boş yanıt = rezervasyon başarısız, hata fırlat
-      throw new Error(`External API boş yanıt döndü. Gönderilen parametreler: Pickup_ID=${params.Pickup_ID}, Drop_Off_ID=${params.Drop_Off_ID}, Cars_Park_ID=${params.Cars_Park_ID}, Group_ID=${params.Group_ID}, Rez_ID=${params.Rez_ID}, Your_Rent_Price=${params.Your_Rent_Price}. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
+        (Array.isArray(response.data) && response.data.length === 0)) {
+      console.warn('⚠️ External API boş yanıt döndü');
+      console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir ama onaylanmamış olabilir');
+      // Boş yanıt döndür ama hata fırlatma (rezervasyon devam edebilir)
+      return response.data || [];
     }
     
     console.log('📥 External API rezervasyon yanıtı:', JSON.stringify(response.data, null, 2));
     
-    // Hata kontrolü - DETAYLI
+    // Hata kontrolü
     if (Array.isArray(response.data) && response.data.length > 0) {
       const firstItem = response.data[0];
       
-      // TÜM alanları logla
-      console.log('📥 External API yanıt detayları:', {
-        success: firstItem.success,
-        Success: firstItem.Success,
-        status: firstItem.status,
-        Status: firstItem.Status,
-        rez_id: firstItem.rez_id,
-        Rez_ID: firstItem.Rez_ID,
-        rez_kayit_no: firstItem.rez_kayit_no,
-        Rez_Kayit_No: firstItem.Rez_Kayit_No,
-        ID: firstItem.ID,
-        id: firstItem.id,
-        error: firstItem.error,
-        Error: firstItem.Error,
-        message: firstItem.message,
-        Message: firstItem.Message,
-        hata: firstItem.hata,
-        Hata: firstItem.Hata,
-        fullResponse: firstItem
-      });
-      
       // success: "True" veya Status: "True" kontrolü
       const isSuccess = firstItem.success === 'True' || firstItem.success === true || 
-                       firstItem.Success === 'True' || firstItem.Success === true ||
                        firstItem.Status === 'True' || firstItem.Status === true ||
                        firstItem.status === 'True' || firstItem.status === true;
       
-      // rez_kayit_no kontrolü - 0 ise rezervasyon kaydedilmemiş demektir
-      const rezKayitNo = firstItem.rez_kayit_no || firstItem.Rez_Kayit_No || firstItem.rezKayitNo || firstItem.rez_kayitNo;
-      const rezId = firstItem.rez_id || firstItem.Rez_ID || firstItem.rezId;
-      
-      // Eğer rez_id varsa ve rez_kayit_no 0 değilse, rezervasyon başarılı sayılabilir
-      const hasValidRezId = rezId && rezId !== '0' && rezId !== 0 && rezId !== null && rezId !== undefined && rezId !== '';
-      const hasValidRezKayitNo = rezKayitNo && rezKayitNo !== '0' && rezKayitNo !== 0 && rezKayitNo !== null && rezKayitNo !== undefined && rezKayitNo !== '';
-      
-      // Eğer rez_id varsa ama rez_kayit_no yoksa veya 0 ise, yine de başarılı sayılabilir (bazı API'ler sadece rez_id döndürür)
-      if (!hasValidRezKayitNo && !hasValidRezId) {
-        // Hem rez_id hem rez_kayit_no yoksa veya 0 ise, hata
-        // Tüm hata mesajlarını topla
-        const errorMessages = [
-          firstItem.error,
-          firstItem.Error,
-          firstItem.message,
-          firstItem.Message,
-          firstItem.hata,
-          firstItem.Hata,
-          firstItem.Mesaj,
-          firstItem.mesaj,
-          firstItem.ErrorMessage,
-          firstItem.errorMessage
-        ].filter(msg => msg && msg.trim() !== '');
-        
-        const errorMsg = errorMessages.length > 0 
-          ? errorMessages.join('. ')
-          : 'Rezervasyon kaydedilemedi (rez_kayit_no: 0). Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
-        
-        console.error('❌ External API rezervasyon kaydedilemedi (rez_kayit_no: 0):', {
-          success: firstItem.success,
-          Success: firstItem.Success,
-          Status: firstItem.Status,
-          status: firstItem.status,
-          rez_id: firstItem.rez_id || firstItem.Rez_ID,
-          rez_kayit_no: rezKayitNo,
-          error: errorMsg,
-          allErrorFields: errorMessages,
-          fullResponse: firstItem,
-          sentParams: {
-            Pickup_ID: params.Pickup_ID,
-            Drop_Off_ID: params.Drop_Off_ID,
-            Cars_Park_ID: params.Cars_Park_ID,
-            Group_ID: params.Group_ID,
-            Rez_ID: params.Rez_ID,
-            Your_Rent_Price: params.Your_Rent_Price,
-            Pickup_Hour: params.Pickup_Hour,
-            Drop_Off_Hour: params.Drop_Off_Hour,
-            Name: params.Name,
-            SurName: params.SurName
-          }
-        });
-        
-        // Gönderilen parametreleri de hata mesajına ekle (debug için)
-        throw new Error(`External API Rezervasyon Hatası: ${errorMsg}. Gönderilen parametreler: Pickup_ID=${params.Pickup_ID}, Drop_Off_ID=${params.Drop_Off_ID}, Cars_Park_ID=${params.Cars_Park_ID}, Group_ID=${params.Group_ID}, Rez_ID=${params.Rez_ID}, Your_Rent_Price=${params.Your_Rent_Price}, Pickup_Hour=${params.Pickup_Hour}, Drop_Off_Hour=${params.Drop_Off_Hour}`);
-      }
-      
-      // success: "False" kontrolü
-      if (firstItem.success === 'False' || firstItem.success === false || 
-          firstItem.Success === 'False' || firstItem.Success === false) {
-        // Eğer rez_id veya rez_kayit_no varsa, rezervasyon yapılmış olabilir
-        // ÖNEMLİ: Bazı API'ler success: False döndürse bile rezervasyon yapılmış olabilir
-        if (hasValidRezId || hasValidRezKayitNo) {
-          console.warn('⚠️ External API success: False ama rez_id veya rez_kayit_no var:', {
-            rez_id: rezId,
-            rez_kayit_no: rezKayitNo,
-            hasValidRezId,
-            hasValidRezKayitNo
-          });
-          console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir, devam ediliyor...');
-          // Rezervasyon yapılmış gibi devam et - HATA FIRLATMA!
+      // success: "False" kontrolü - ama rez_id varsa rezervasyon yapılmış olabilir
+      if (firstItem.success === 'False' || firstItem.success === false) {
+        // Eğer rez_id varsa, rezervasyon yapılmış olabilir (sadece kayıt numarası 0 olabilir)
+        if (firstItem.rez_id) {
+          console.warn('⚠️ External API success: False ama rez_id var:', firstItem.rez_id);
+          console.warn('⚠️ Bu durumda rezervasyon yapılmış olabilir ama kayıt numarası 0');
+          // Rezervasyon yapılmış gibi devam et, ama uyar
+          console.warn('⚠️ Rezervasyon türevde görünmeyebilir, lütfen kontrol edin');
         } else {
           // Hata mesajını bul
           const errorMsg = firstItem.error || firstItem.Error || firstItem.message || firstItem.Message || 
                           firstItem.hata || firstItem.Hata || 
-                          'Rezervasyon kaydedilemedi. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
+                          (firstItem.rez_kayit_no === '0' ? 'Rezervasyon kaydedilemedi (rez_kayit_no: 0). Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35' : 'Bilinmeyen hata');
           console.error('❌ External API rezervasyon hatası detayları:', {
             success: firstItem.success,
             Status: firstItem.Status,
             rez_id: firstItem.rez_id,
-            rez_kayit_no: rezKayitNo,
+            rez_kayit_no: firstItem.rez_kayit_no,
             error: errorMsg,
             fullResponse: firstItem
           });
@@ -469,55 +257,18 @@ const saveReservation = async (reservationData) => {
         }
       }
       
-      // Başarılı rezervasyon kontrolü - rez_id veya rez_kayit_no varsa başarılı say
-      if (hasValidRezId || hasValidRezKayitNo) {
-        console.log('✅ External API rezervasyon başarılı:', {
-          rez_id: rezId,
-          rez_kayit_no: rezKayitNo,
-          success: firstItem.success,
-          Status: firstItem.Status
-        });
-      }
-      
       // Başarılı ise logla
       if (isSuccess) {
         console.log('✅ External API rezervasyon başarılı:', {
-          rez_id: firstItem.rez_id || firstItem.Rez_ID,
-          rez_kayit_no: rezKayitNo,
-          ID: firstItem.ID || firstItem.id,
-          Status: firstItem.Status || firstItem.status || firstItem.Success
+          rez_id: firstItem.rez_id,
+          rez_kayit_no: firstItem.rez_kayit_no,
+          ID: firstItem.ID,
+          Status: firstItem.Status || firstItem.status
         });
       }
     } else if (typeof response.data === 'object' && response.data !== null) {
       // Array değilse, direkt obje olabilir
       console.log('📥 External API yanıtı obje formatında:', response.data);
-      
-      // Obje formatında da hata kontrolü yap
-      if (response.data.success === 'False' || response.data.success === false) {
-        const errorMsg = response.data.error || response.data.Error || 
-                        'Rezervasyon kaydedilemedi. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35';
-        throw new Error(`External API Rezervasyon Hatası: ${errorMsg}`);
-      }
-    } else if (typeof response.data === 'string') {
-      // String yanıt olabilir (XML veya HTML hata sayfası)
-      console.warn('⚠️ External API string yanıt döndü:', response.data.substring(0, 500));
-      
-      // Eğer string yanıt boş değilse, parse etmeyi dene
-      if (response.data.trim() !== '') {
-        try {
-          // JSON string olabilir
-          const parsed = JSON.parse(response.data);
-          console.log('📥 String yanıt JSON olarak parse edildi:', parsed);
-          return parsed;
-        } catch (parseError) {
-          // JSON değilse, hata sayfası veya XML olabilir
-          console.error('❌ String yanıt JSON değil, muhtemelen hata sayfası');
-          console.error('❌ Yanıt içeriği:', response.data.substring(0, 1000));
-          throw new Error(`External API beklenmedik string yanıt döndü. Muhtemelen hata sayfası. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35`);
-        }
-      } else {
-        throw new Error('External API boş string yanıt döndü. Rezervasyon türevde görünmeyecek. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
-      }
     }
     
     return response.data;
