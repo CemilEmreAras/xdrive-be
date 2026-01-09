@@ -316,36 +316,36 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               const finalGroupId = groupId || apiCar.Group_ID || apiCar.group_ID || apiCar.group_id || apiCar.GroupID;
               
               // ÖNCELİK 1: Groups endpoint'indeki image_path alanını kullan (en yüksek öncelik)
+              // image_path değerinden resim ismini al ve https://t1.trvcar.com/XDriveDzn/ sonuna ekle
               const groupImage = groupInfo.imagePath;
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
-                let finalImageUrl;
-                let cleanGroupImage = groupImage.trim();
+                let cleanImageName = groupImage.trim();
                 
-                // t1.trvcar.com URL formatını kontrol et
-                if (cleanGroupImage.includes('t1.trvcar.com') || cleanGroupImage.includes('trvcar.com')) {
-                  // Tam URL ise (t1.trvcar.com içeriyorsa) direkt kullan
-                  if (!cleanGroupImage.startsWith('http://') && !cleanGroupImage.startsWith('https://')) {
-                    cleanGroupImage = `https://${cleanGroupImage}`;
-                  }
-                  // t1.trvcar.com için proxy kullan (SSL sorunu olabilir)
-                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanGroupImage.replace('https://', 'http://'))}`;
-                } else if (cleanGroupImage.startsWith('http://') || cleanGroupImage.startsWith('https://')) {
-                  // Diğer tam URL'ler için
-                  let httpUrl = cleanGroupImage.replace('https://', 'http://');
-                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(httpUrl)}`;
-                } else {
-                  // image_path değerini direkt t1.trvcar.com/XDriveDzn/ formatında kullan
-                  // Örnek: "34d6fc31-7543-4642-ae3e-fe247f90ff55-.jpeg" → "https://t1.trvcar.com/XDriveDzn/34d6fc31-7543-4642-ae3e-fe247f90ff55-.jpeg"
-                  // Eğer / ile başlıyorsa kaldır
-                  if (cleanGroupImage.startsWith('/')) {
-                    cleanGroupImage = cleanGroupImage.substring(1);
-                  }
-                  const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${cleanGroupImage}`;
-                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
+                // Eğer tam URL ise, sadece dosya adını çıkar
+                if (cleanImageName.includes('t1.trvcar.com') || cleanImageName.includes('trvcar.com')) {
+                  // URL'den dosya adını çıkar
+                  const urlParts = cleanImageName.split('/');
+                  cleanImageName = urlParts[urlParts.length - 1];
+                } else if (cleanImageName.startsWith('http://') || cleanImageName.startsWith('https://')) {
+                  // Diğer URL'lerden dosya adını çıkar
+                  const urlParts = cleanImageName.split('/');
+                  cleanImageName = urlParts[urlParts.length - 1];
+                } else if (cleanImageName.startsWith('/')) {
+                  // / ile başlıyorsa kaldır
+                  cleanImageName = cleanImageName.substring(1);
                 }
                 
+                // Resim ismini https://t1.trvcar.com/XDriveDzn/ sonuna ekle
+                // Örnek: "34d6fc31-7543-4642-ae3e-fe247f90ff55-.jpeg" → "http://t1.trvcar.com/XDriveDzn/34d6fc31-7543-4642-ae3e-fe247f90ff55-.jpeg"
+                const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${cleanImageName}`;
+                const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
+                
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Groups image_path kullanılıyor (t1.trvcar.com/XDriveDzn/):', finalImageUrl, '(orijinal image_path:', groupImage, ', group_id:', finalGroupId, ')');
+                  console.log('  ✅ Groups image_path kullanılıyor:');
+                  console.log('    📋 Orijinal image_path:', groupImage);
+                  console.log('    📋 Temizlenmiş resim ismi:', cleanImageName);
+                  console.log('    📋 Oluşturulan URL:', trvcarUrl);
+                  console.log('    📋 Proxy URL:', finalImageUrl);
                 }
                 
                 return finalImageUrl;
@@ -393,8 +393,8 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 ));
               }
               
-              // API'den gelen Image_Path field'ını kontrol et
-              // Image_Path değeri direkt t1.trvcar.com/XDriveDzn/ formatında kullanılacak
+              // ÖNCELİK 3: API'den gelen Image_Path field'ını kontrol et
+              // Image_Path değerinden resim ismini al ve https://t1.trvcar.com/XDriveDzn/ sonuna ekle
               for (const imagePath of imagePathFields) {
                 if (imagePath && 
                     typeof imagePath === 'string' && 
@@ -403,34 +403,34 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                     imagePath !== 'undefined' &&
                     !imagePath.startsWith('data:image/svg+xml')) {
                   
-                  let finalImageUrl;
-                  let cleanImagePath = imagePath.trim();
+                  let cleanImageName = imagePath.trim();
                   
-                  // t1.trvcar.com URL formatını kontrol et
-                  if (cleanImagePath.includes('t1.trvcar.com') || cleanImagePath.includes('trvcar.com')) {
-                    // Tam URL ise (t1.trvcar.com içeriyorsa) direkt kullan
-                    if (!cleanImagePath.startsWith('http://') && !cleanImagePath.startsWith('https://')) {
-                      cleanImagePath = `https://${cleanImagePath}`;
-                    }
-                    // t1.trvcar.com için proxy kullan (SSL sorunu olabilir)
-                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanImagePath.replace('https://', 'http://'))}`;
-                  } else if (cleanImagePath.startsWith('http://') || cleanImagePath.startsWith('https://')) {
-                    // Diğer tam URL'ler için
-                    let httpUrl = cleanImagePath.replace('https://', 'http://');
-                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(httpUrl)}`;
-                  } else {
-                    // image_path değerini direkt t1.trvcar.com/XDriveDzn/ formatında kullan
-                    // Örnek: "40148f19-3c9b-4499-804e-a49991f216b0-.png" → "http://t1.trvcar.com/XDriveDzn/40148f19-3c9b-4499-804e-a49991f216b0-.png"
-                    // Eğer / ile başlıyorsa kaldır
-                    if (cleanImagePath.startsWith('/')) {
-                      cleanImagePath = cleanImagePath.substring(1);
-                    }
-                    const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${cleanImagePath}`;
-                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
+                  // Eğer tam URL ise, sadece dosya adını çıkar
+                  if (cleanImageName.includes('t1.trvcar.com') || cleanImageName.includes('trvcar.com')) {
+                    // URL'den dosya adını çıkar
+                    const urlParts = cleanImageName.split('/');
+                    cleanImageName = urlParts[urlParts.length - 1];
+                  } else if (cleanImageName.startsWith('http://') || cleanImageName.startsWith('https://')) {
+                    // Diğer URL'lerden dosya adını çıkar
+                    const urlParts = cleanImageName.split('/');
+                    cleanImageName = urlParts[urlParts.length - 1];
+                  } else if (cleanImageName.startsWith('/')) {
+                    // / ile başlıyorsa kaldır
+                    cleanImageName = cleanImageName.substring(1);
                   }
                   
+                  // Resim ismini https://t1.trvcar.com/XDriveDzn/ sonuna ekle
+                  // Örnek: "40148f19-3c9b-4499-804e-a49991f216b0-.png" → "http://t1.trvcar.com/XDriveDzn/40148f19-3c9b-4499-804e-a49991f216b0-.png"
+                  const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${cleanImageName}`;
+                  const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
+                  
                   if (availableCars.indexOf(car) === 0) {
-                    console.log('  ✅ API Image_Path kullanılıyor (t1.trvcar.com/XDriveDzn/):', finalImageUrl, '(orijinal Image_Path:', imagePath, ', field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath), ')');
+                    console.log('  ✅ API Image_Path kullanılıyor:');
+                    console.log('    📋 Orijinal Image_Path:', imagePath);
+                    console.log('    📋 Temizlenmiş resim ismi:', cleanImageName);
+                    console.log('    📋 Oluşturulan URL:', trvcarUrl);
+                    console.log('    📋 Proxy URL:', finalImageUrl);
+                    console.log('    📋 Field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath));
                   }
                   
                   return finalImageUrl;
