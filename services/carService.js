@@ -371,7 +371,16 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               if (finalGroupId && groupInfo && Object.keys(groupInfo).length > 0) {
                 // Groups endpoint'inden gelen group_id ile resim URL'i oluştur
                 const groupIdStr = String(finalGroupId);
+                // Önce t1.trvcar.com/XDriveDzn/ formatını dene (yeni format)
+                const trvcarUrls = [
+                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpeg`,
+                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpg`,
+                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpeg`,
+                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpg`
+                ];
+                // Sonra eski formatları dene
                 const groupImageUrls = [
+                  ...trvcarUrls,
                   `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
                   `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
                   `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
@@ -380,12 +389,12 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   `http://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
                 ];
                 
-                // İlk URL'i proxy ile döndür
+                // İlk URL'i proxy ile döndür (t1.trvcar.com formatı öncelikli)
                 const firstGroupUrl = groupImageUrls[0];
                 const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(firstGroupUrl)}`;
                 
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Groups group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ')');
+                  console.log('  ✅ Groups group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ', format: t1.trvcar.com)');
                 }
                 
                 return finalImageUrl;
@@ -395,7 +404,16 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               // Eğer groupInfo yoksa ama group_id varsa, yine de group_id ile URL oluştur
               if (finalGroupId) {
                 const groupIdStr = String(finalGroupId);
+                // Önce t1.trvcar.com/XDriveDzn/ formatını dene (yeni format)
+                const trvcarUrls = [
+                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpeg`,
+                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpg`,
+                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpeg`,
+                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpg`
+                ];
+                // Sonra eski formatları dene
                 const groupImageUrls = [
+                  ...trvcarUrls,
                   `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
                   `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
                   `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
@@ -408,7 +426,7 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(firstGroupUrl)}`;
                 
                 if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ')');
+                  console.log('  ✅ Group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ', format: t1.trvcar.com)');
                 }
                 
                 return finalImageUrl;
