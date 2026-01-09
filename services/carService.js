@@ -436,20 +436,9 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               // Alternatif image URL formatları (dökümantasyondaki ID'lere göre)
               const alternativeUrls = [];
               
-              // Group_ID ile resim URL'leri (eğer groups endpoint'inden gelmediyse) - Proxy kullan
-              // Not: Groups endpoint'inden group_id zaten yukarıda kontrol edildi, burada sadece fallback
-              if (finalGroupId && (!groupInfo || Object.keys(groupInfo).length === 0)) {
-                const groupIdStr = String(finalGroupId);
-                const groupUrls = [
-                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
-                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
-                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
-                ];
-                alternativeUrls.push(...groupUrls.map(url => `/api/images/proxy?url=${encodeURIComponent(url)}`));
-              }
+              // Group_ID ile resim URL'leri KALDIRILDI
+              // Sadece Groups endpoint'inden gelen image_path kullanılacak
+              // group_id ile alternatif URL oluşturma kaldırıldı (group_425.jpeg gibi formatlar çalışmıyor)
               
               // Rez_ID ile resim URL'leri (dökümantasyonda Rez_ID var) - Proxy kullan
               if (rezId) {
