@@ -394,6 +394,7 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               }
               
               // API'den gelen Image_Path field'ını kontrol et
+              // Image_Path değeri direkt t1.trvcar.com/XDriveDzn/ formatında kullanılacak
               for (const imagePath of imagePathFields) {
                 if (imagePath && 
                     typeof imagePath === 'string' && 
@@ -403,24 +404,33 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                     !imagePath.startsWith('data:image/svg+xml')) {
                   
                   let finalImageUrl;
-                  // Önce HTTPS varsa HTTP'ye çevir (SSL sorunu olmaması için)
-                  let cleanImagePath = imagePath.replace('https://', 'http://');
+                  let cleanImagePath = imagePath.trim();
                   
-                  if (cleanImagePath.startsWith('http://')) {
-                    // Proxy URL kullan
-                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanImagePath)}`;
-                  } else if (cleanImagePath.startsWith('/')) {
-                    // Proxy URL kullan
-                    const fullUrl = `http://xdrivejson.turevsistem.com${cleanImagePath}`;
-                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
+                  // t1.trvcar.com URL formatını kontrol et
+                  if (cleanImagePath.includes('t1.trvcar.com') || cleanImagePath.includes('trvcar.com')) {
+                    // Tam URL ise (t1.trvcar.com içeriyorsa) direkt kullan
+                    if (!cleanImagePath.startsWith('http://') && !cleanImagePath.startsWith('https://')) {
+                      cleanImagePath = `https://${cleanImagePath}`;
+                    }
+                    // t1.trvcar.com için proxy kullan (SSL sorunu olabilir)
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanImagePath.replace('https://', 'http://'))}`;
+                  } else if (cleanImagePath.startsWith('http://') || cleanImagePath.startsWith('https://')) {
+                    // Diğer tam URL'ler için
+                    let httpUrl = cleanImagePath.replace('https://', 'http://');
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(httpUrl)}`;
                   } else {
-                    // Relative path ise base URL ekle ve proxy kullan
-                    const fullUrl = `http://xdrivejson.turevsistem.com/${cleanImagePath}`;
-                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
+                    // image_path değerini direkt t1.trvcar.com/XDriveDzn/ formatında kullan
+                    // Örnek: "40148f19-3c9b-4499-804e-a49991f216b0-.png" → "http://t1.trvcar.com/XDriveDzn/40148f19-3c9b-4499-804e-a49991f216b0-.png"
+                    // Eğer / ile başlıyorsa kaldır
+                    if (cleanImagePath.startsWith('/')) {
+                      cleanImagePath = cleanImagePath.substring(1);
+                    }
+                    const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${cleanImagePath}`;
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
                   }
                   
                   if (availableCars.indexOf(car) === 0) {
-                    console.log('  ✅ API Image_Path kullanılıyor (proxy):', finalImageUrl, '(orijinal:', imagePath, ', field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath), ')');
+                    console.log('  ✅ API Image_Path kullanılıyor (t1.trvcar.com/XDriveDzn/):', finalImageUrl, '(orijinal Image_Path:', imagePath, ', field:', Object.keys(apiCar).find(k => apiCar[k] === imagePath), ')');
                   }
                   
                   return finalImageUrl;
