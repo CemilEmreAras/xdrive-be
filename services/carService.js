@@ -316,28 +316,46 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               const groupImage = groupInfo.imagePath;
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
                 let finalImageUrl;
-                // Önce HTTPS varsa HTTP'ye çevir (SSL sorunu olmaması için)
-                let cleanGroupImage = groupImage.replace('https://', 'http://');
+                let cleanGroupImage = groupImage.trim();
                 
-                if (cleanGroupImage.startsWith('http://') || cleanGroupImage.startsWith('https://')) {
-                  // Tam URL ise direkt kullan
-                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanGroupImage)}`;
+                // t1.trvcar.com URL formatını kontrol et
+                if (cleanGroupImage.includes('t1.trvcar.com') || cleanGroupImage.includes('trvcar.com')) {
+                  // Tam URL ise (t1.trvcar.com içeriyorsa) direkt kullan
+                  // HTTPS kullan (t1.trvcar.com SSL sertifikası olmalı)
+                  if (!cleanGroupImage.startsWith('http://') && !cleanGroupImage.startsWith('https://')) {
+                    cleanGroupImage = `https://${cleanGroupImage}`;
+                  }
+                  // t1.trvcar.com için proxy kullan (SSL sorunu olabilir)
+                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(cleanGroupImage.replace('https://', 'http://'))}`;
+                } else if (cleanGroupImage.startsWith('http://') || cleanGroupImage.startsWith('https://')) {
+                  // Diğer tam URL'ler için
+                  let httpUrl = cleanGroupImage.replace('https://', 'http://');
+                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(httpUrl)}`;
                 } else if (cleanGroupImage.startsWith('/')) {
                   // Absolute path ise base URL ekle
                   const fullUrl = `http://xdrivejson.turevsistem.com${cleanGroupImage}`;
                   finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 } else {
-                  // Relative path veya dosya adı ise (örn: "40148f19-3c9b-4499-804e-a49991f216b0-.png")
-                  // Önce /images/ path'ini dene, sonra root'a ekle
-                  let fullUrl;
-                  if (cleanGroupImage.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                    // Dosya uzantısı varsa, /images/ path'ine ekle
-                    fullUrl = `http://xdrivejson.turevsistem.com/images/${cleanGroupImage}`;
+                  // UUID formatını kontrol et (örn: "34d6fc31-7543-4642-ae3e-fe247f90ff55-.jpeg" veya sadece UUID)
+                  // UUID pattern: 8-4-4-4-12 karakter (veya dosya adı formatı)
+                  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(-)?(\.(jpg|jpeg|png|gif|webp))?$/i;
+                  if (uuidPattern.test(cleanGroupImage) || cleanGroupImage.match(/^[0-9a-f-]+\.(jpg|jpeg|png|gif|webp)$/i)) {
+                    // UUID formatında ise t1.trvcar.com/XDriveDzn/ formatını kullan
+                    let imageFileName = cleanGroupImage;
+                    if (!imageFileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                      imageFileName = `${cleanGroupImage}.jpeg`;
+                    }
+                    const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${imageFileName}`;
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
+                  } else if (cleanGroupImage.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                    // Dosya uzantısı varsa, önce t1.trvcar.com/XDriveDzn/ formatını dene
+                    const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${cleanGroupImage}`;
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
                   } else {
-                    // Uzantı yoksa direkt root'a ekle
-                    fullUrl = `http://xdrivejson.turevsistem.com/${cleanGroupImage}`;
+                    // Uzantı yoksa, t1.trvcar.com/XDriveDzn/ formatını dene (.jpeg ekle)
+                    const trvcarUrl = `http://t1.trvcar.com/XDriveDzn/${cleanGroupImage}.jpeg`;
+                    finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(trvcarUrl)}`;
                   }
-                  finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
                 }
                 
                 if (availableCars.indexOf(car) === 0) {
