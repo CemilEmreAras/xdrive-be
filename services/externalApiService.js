@@ -88,11 +88,18 @@ const getAvailableCars = async (params) => {
         const errorMsg = firstItem.error || 'Bilinmeyen hata';
         
         // "Man Süresi" (Minimum kiralama süresi) hatasını özel olarak handle et
-        // Bu durumda boş array döndür, hata fırlatma
+        // Bu durumda hata mesajını içeren item'ı filtrele ve diğer araçları döndür
         if (errorMsg.includes('Man Süresi') || errorMsg.includes('Man Süre') || 
             errorMsg.toLowerCase().includes('minimum') || errorMsg.toLowerCase().includes('min')) {
-          console.warn('⚠️ Minimum kiralama süresi hatası (sessizce yok sayılıyor):', errorMsg);
-          return []; // Boş array döndür, hata fırlatma
+          console.warn('⚠️ Minimum kiralama süresi hatası (hata mesajı filtreleniyor):', errorMsg);
+          // Hata mesajı içeren item'ları filtrele, gerçek araç verilerini döndür
+          const validCars = response.data.filter(item => {
+            // Hata mesajı içeren item'ları çıkar
+            return !(item.success === 'False' || item.error) || 
+                   (!item.error || (!item.error.includes('Man Süresi') && !item.error.includes('Man Süre')));
+          });
+          // Eğer geçerli araç varsa döndür, yoksa boş array
+          return validCars.length > 0 ? validCars : [];
         }
         
         throw new Error(`API Hatası: ${errorMsg}. Lütfen API sağlayıcısı ile iletişime geçin (0312 870 10 35).`);
