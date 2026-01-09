@@ -69,11 +69,26 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/api/cars', require('./routes/cars'));
-app.use('/api/reservations', require('./routes/reservations'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/images', require('./routes/images'));
+// Routes - Logging ile
+app.use('/api/cars', (req, res, next) => {
+  console.log(`🔍 Route: /api/cars${req.path}`);
+  next();
+}, require('./routes/cars'));
+
+app.use('/api/reservations', (req, res, next) => {
+  console.log(`🔍 Route: /api/reservations${req.path}`);
+  next();
+}, require('./routes/reservations'));
+
+app.use('/api/auth', (req, res, next) => {
+  console.log(`🔍 Route: /api/auth${req.path}`);
+  next();
+}, require('./routes/auth'));
+
+app.use('/api/images', (req, res, next) => {
+  console.log(`🔍 Route: /api/images${req.path}`, req.query);
+  next();
+}, require('./routes/images'));
 
 // Chrome DevTools .well-known isteğini sessizce yok say
 app.get('/.well-known/*', (req, res) => {
