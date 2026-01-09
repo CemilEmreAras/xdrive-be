@@ -312,6 +312,9 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               dropoffId: params.dropoffId
             },
             image: (() => {
+              // Group ID'yi al (log için)
+              const finalGroupId = groupId || apiCar.Group_ID || apiCar.group_ID || apiCar.group_id || apiCar.GroupID;
+              
               // ÖNCELİK 1: Groups endpoint'indeki image_path alanını kullan (en yüksek öncelik)
               const groupImage = groupInfo.imagePath;
               if (groupImage && groupImage.trim() !== '' && groupImage !== 'null' && groupImage !== 'undefined') {
@@ -348,71 +351,10 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 return finalImageUrl;
               }
               
-              // ÖNCELİK 1.5: Groups endpoint'inden image_path boş ise, group_id kullanarak URL oluştur
-              // Groups JSON formatına göre: group_id kullanarak resim URL'i oluştur
-              const finalGroupId = groupId || apiCar.Group_ID || apiCar.group_ID || apiCar.group_id || apiCar.GroupID;
-              if (finalGroupId && groupInfo && Object.keys(groupInfo).length > 0) {
-                // Groups endpoint'inden gelen group_id ile resim URL'i oluştur
-                const groupIdStr = String(finalGroupId);
-                // Önce t1.trvcar.com/XDriveDzn/ formatını dene (yeni format)
-                const trvcarUrls = [
-                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpeg`,
-                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpg`,
-                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpeg`,
-                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpg`
-                ];
-                // Sonra eski formatları dene
-                const groupImageUrls = [
-                  ...trvcarUrls,
-                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
-                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
-                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
-                ];
-                
-                // İlk URL'i proxy ile döndür (t1.trvcar.com formatı öncelikli)
-                const firstGroupUrl = groupImageUrls[0];
-                const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(firstGroupUrl)}`;
-                
-                if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Groups group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ', format: t1.trvcar.com)');
-                }
-                
-                return finalImageUrl;
-              }
-              
-              // ÖNCELİK 2: Groups endpoint'inden group_id ile resim URL'i oluştur (groupInfo yoksa bile)
-              // Eğer groupInfo yoksa ama group_id varsa, yine de group_id ile URL oluştur
-              if (finalGroupId) {
-                const groupIdStr = String(finalGroupId);
-                // Önce t1.trvcar.com/XDriveDzn/ formatını dene (yeni format)
-                const trvcarUrls = [
-                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpeg`,
-                  `http://t1.trvcar.com/XDriveDzn/group_${groupIdStr}.jpg`,
-                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpeg`,
-                  `http://t1.trvcar.com/XDriveDzn/${groupIdStr}.jpg`
-                ];
-                // Sonra eski formatları dene
-                const groupImageUrls = [
-                  ...trvcarUrls,
-                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/group_${groupIdStr}.png`,
-                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/groups/${groupIdStr}.png`,
-                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.jpg`,
-                  `http://xdrivejson.turevsistem.com/images/${groupIdStr}.png`
-                ];
-                
-                const firstGroupUrl = groupImageUrls[0];
-                const finalImageUrl = `/api/images/proxy?url=${encodeURIComponent(firstGroupUrl)}`;
-                
-                if (availableCars.indexOf(car) === 0) {
-                  console.log('  ✅ Group_id ile resim URL\'si oluşturuldu (proxy):', finalImageUrl, '(group_id:', groupIdStr, ', format: t1.trvcar.com)');
-                }
-                
-                return finalImageUrl;
+              // ÖNCELİK 1.5: image_path boş ise, placeholder döndür (group_id ile alternatif URL oluşturma kaldırıldı)
+              // Sadece Groups endpoint'inden gelen image_path değeri kullanılacak
+              if (availableCars.indexOf(car) === 0) {
+                console.log('  ⚠️ Groups image_path boş, placeholder kullanılacak (group_id:', finalGroupId, ')');
               }
               
               // ÖNCELİK 3: JsonRez.aspx'ten Image_Path field'ı (düşük öncelik - sadece Groups'da yoksa)
