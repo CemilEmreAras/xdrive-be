@@ -551,83 +551,54 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
             navigation: apiCar.Navigation || apiCar.navigation,
             additionalDriver: apiCar.Additional_Driver || apiCar.additional_Driver,
             fuel: apiCar.Fuel || apiCar.fuel,
-            // Ekstra özellik fiyatları - API'den gelen değerleri parse et
-            // API'den gelen değerler fiyat olabilir veya "ON"/"OFF" gibi flag'ler olabilir
-            // Önce fiyat alanlarını kontrol et, yoksa varsayılan fiyatlar kullan
+            // Ekstra özellik fiyatları - API dokümantasyonuna göre:
+            // Baby_Seat, Navigation, Additional_Driver, CDW, SCDW, LCF alanları TOPLAM fiyat döndürüyor (günlük değil)
+            // -1 değeri satışa sunulmamış anlamına geliyor
+            // Gün sayısına bölerek günlük fiyatı hesaplıyoruz
+            const days = apiCar.Days || apiCar.days || 1;
             extras: {
               babySeat: (() => {
-                // Önce fiyat alanlarını kontrol et
-                const priceValue = apiCar.Baby_Seat_Price || apiCar.baby_Seat_Price || apiCar.Baby_Seat_Price_Day || apiCar.baby_Seat_Price_Day;
-                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
-                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
-                  if (!isNaN(parsed) && parsed > 0) return parsed;
-                }
-                // Eğer fiyat yoksa ama Baby_Seat "ON" ise varsayılan fiyat kullan (50)
-                const flagValue = apiCar.Baby_Seat || apiCar.baby_Seat;
-                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
-                  return 50; // Varsayılan fiyat
-                }
-                return 0;
+                const totalPrice = apiCar.Baby_Seat || apiCar.baby_Seat;
+                if (totalPrice === undefined || totalPrice === null || totalPrice === '' || totalPrice === -1) return 0;
+                const parsed = typeof totalPrice === 'string' ? parseFloat(totalPrice) : totalPrice;
+                if (isNaN(parsed) || parsed <= 0) return 0;
+                // Toplam fiyatı gün sayısına bölerek günlük fiyatı hesapla
+                return days > 0 ? parsed / days : parsed;
               })(),
               navigation: (() => {
-                const priceValue = apiCar.Navigation_Price || apiCar.navigation_Price || apiCar.Navigation_Price_Day || apiCar.navigation_Price_Day;
-                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
-                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
-                  if (!isNaN(parsed) && parsed > 0) return parsed;
-                }
-                const flagValue = apiCar.Navigation || apiCar.navigation;
-                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
-                  return 30; // Varsayılan fiyat
-                }
-                return 0;
+                const totalPrice = apiCar.Navigation || apiCar.navigation;
+                if (totalPrice === undefined || totalPrice === null || totalPrice === '' || totalPrice === -1) return 0;
+                const parsed = typeof totalPrice === 'string' ? parseFloat(totalPrice) : totalPrice;
+                if (isNaN(parsed) || parsed <= 0) return 0;
+                return days > 0 ? parsed / days : parsed;
               })(),
               additionalDriver: (() => {
-                const priceValue = apiCar.Additional_Driver_Price || apiCar.additional_Driver_Price || apiCar.Additional_Driver_Price_Day || apiCar.additional_Driver_Price_Day;
-                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
-                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
-                  if (!isNaN(parsed) && parsed > 0) return parsed;
-                }
-                const flagValue = apiCar.Additional_Driver || apiCar.additional_Driver;
-                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
-                  return 30; // Varsayılan fiyat
-                }
-                return 0;
+                const totalPrice = apiCar.Additional_Driver || apiCar.additional_Driver;
+                if (totalPrice === undefined || totalPrice === null || totalPrice === '' || totalPrice === -1) return 0;
+                const parsed = typeof totalPrice === 'string' ? parseFloat(totalPrice) : totalPrice;
+                if (isNaN(parsed) || parsed <= 0) return 0;
+                return days > 0 ? parsed / days : parsed;
               })(),
               cdw: (() => {
-                const priceValue = apiCar.CDW_Price || apiCar.cdw_Price || apiCar.CDW_Price_Day || apiCar.cdw_Price_Day;
-                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
-                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
-                  if (!isNaN(parsed) && parsed > 0) return parsed;
-                }
-                const flagValue = apiCar.CDW || apiCar.cdw;
-                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
-                  return 20; // Varsayılan fiyat
-                }
-                return 0;
+                const totalPrice = apiCar.CDW || apiCar.cdw;
+                if (totalPrice === undefined || totalPrice === null || totalPrice === '' || totalPrice === -1) return 0;
+                const parsed = typeof totalPrice === 'string' ? parseFloat(totalPrice) : totalPrice;
+                if (isNaN(parsed) || parsed <= 0) return 0;
+                return days > 0 ? parsed / days : parsed;
               })(),
               scdw: (() => {
-                const priceValue = apiCar.SCDW_Price || apiCar.scdw_Price || apiCar.SCDW_Price_Day || apiCar.scdw_Price_Day;
-                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
-                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
-                  if (!isNaN(parsed) && parsed > 0) return parsed;
-                }
-                const flagValue = apiCar.SCDW || apiCar.scdw;
-                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
-                  return 25; // Varsayılan fiyat
-                }
-                return 0;
+                const totalPrice = apiCar.SCDW || apiCar.scdw;
+                if (totalPrice === undefined || totalPrice === null || totalPrice === '' || totalPrice === -1) return 0;
+                const parsed = typeof totalPrice === 'string' ? parseFloat(totalPrice) : totalPrice;
+                if (isNaN(parsed) || parsed <= 0) return 0;
+                return days > 0 ? parsed / days : parsed;
               })(),
               lcf: (() => {
-                const priceValue = apiCar.LCF_Price || apiCar.lcf_Price || apiCar.LCF_Price_Day || apiCar.lcf_Price_Day;
-                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
-                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
-                  if (!isNaN(parsed) && parsed > 0) return parsed;
-                }
-                const flagValue = apiCar.LCF || apiCar.lcf;
-                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
-                  return 15; // Varsayılan fiyat
-                }
-                return 0;
+                const totalPrice = apiCar.LCF || apiCar.lcf;
+                if (totalPrice === undefined || totalPrice === null || totalPrice === '' || totalPrice === -1) return 0;
+                const parsed = typeof totalPrice === 'string' ? parseFloat(totalPrice) : totalPrice;
+                if (isNaN(parsed) || parsed <= 0) return 0;
+                return days > 0 ? parsed / days : parsed;
               })()
             }
           };
