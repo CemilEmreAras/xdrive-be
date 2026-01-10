@@ -74,6 +74,24 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
             console.log('🔍 API\'den gelen İLK ARAÇ VERİSİ (TÜM ALANLAR):');
             console.log(JSON.stringify(apiCar, null, 2));
             console.log('API\'den gelen key\'ler:', Object.keys(apiCar));
+            // Ekstra özellik alanlarını özellikle logla
+            console.log('🔍 Ekstra özellik alanları:', {
+              Baby_Seat: apiCar.Baby_Seat,
+              baby_Seat: apiCar.baby_Seat,
+              Baby_Seat_Price: apiCar.Baby_Seat_Price,
+              Additional_Driver: apiCar.Additional_Driver,
+              additional_Driver: apiCar.additional_Driver,
+              Additional_Driver_Price: apiCar.Additional_Driver_Price,
+              Navigation: apiCar.Navigation,
+              navigation: apiCar.navigation,
+              Navigation_Price: apiCar.Navigation_Price,
+              CDW: apiCar.CDW,
+              CDW_Price: apiCar.CDW_Price,
+              SCDW: apiCar.SCDW,
+              SCDW_Price: apiCar.SCDW_Price,
+              LCF: apiCar.LCF,
+              LCF_Price: apiCar.LCF_Price
+            });
           }
           
           const groupId = apiCar.Group_ID || apiCar.group_ID || apiCar.GroupID;
@@ -532,7 +550,86 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
             babySeat: apiCar.Baby_Seat || apiCar.baby_Seat,
             navigation: apiCar.Navigation || apiCar.navigation,
             additionalDriver: apiCar.Additional_Driver || apiCar.additional_Driver,
-            fuel: apiCar.Fuel || apiCar.fuel
+            fuel: apiCar.Fuel || apiCar.fuel,
+            // Ekstra özellik fiyatları - API'den gelen değerleri parse et
+            // API'den gelen değerler fiyat olabilir veya "ON"/"OFF" gibi flag'ler olabilir
+            // Önce fiyat alanlarını kontrol et, yoksa varsayılan fiyatlar kullan
+            extras: {
+              babySeat: (() => {
+                // Önce fiyat alanlarını kontrol et
+                const priceValue = apiCar.Baby_Seat_Price || apiCar.baby_Seat_Price || apiCar.Baby_Seat_Price_Day || apiCar.baby_Seat_Price_Day;
+                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
+                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
+                  if (!isNaN(parsed) && parsed > 0) return parsed;
+                }
+                // Eğer fiyat yoksa ama Baby_Seat "ON" ise varsayılan fiyat kullan (50)
+                const flagValue = apiCar.Baby_Seat || apiCar.baby_Seat;
+                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
+                  return 50; // Varsayılan fiyat
+                }
+                return 0;
+              })(),
+              navigation: (() => {
+                const priceValue = apiCar.Navigation_Price || apiCar.navigation_Price || apiCar.Navigation_Price_Day || apiCar.navigation_Price_Day;
+                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
+                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
+                  if (!isNaN(parsed) && parsed > 0) return parsed;
+                }
+                const flagValue = apiCar.Navigation || apiCar.navigation;
+                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
+                  return 30; // Varsayılan fiyat
+                }
+                return 0;
+              })(),
+              additionalDriver: (() => {
+                const priceValue = apiCar.Additional_Driver_Price || apiCar.additional_Driver_Price || apiCar.Additional_Driver_Price_Day || apiCar.additional_Driver_Price_Day;
+                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
+                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
+                  if (!isNaN(parsed) && parsed > 0) return parsed;
+                }
+                const flagValue = apiCar.Additional_Driver || apiCar.additional_Driver;
+                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
+                  return 30; // Varsayılan fiyat
+                }
+                return 0;
+              })(),
+              cdw: (() => {
+                const priceValue = apiCar.CDW_Price || apiCar.cdw_Price || apiCar.CDW_Price_Day || apiCar.cdw_Price_Day;
+                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
+                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
+                  if (!isNaN(parsed) && parsed > 0) return parsed;
+                }
+                const flagValue = apiCar.CDW || apiCar.cdw;
+                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
+                  return 20; // Varsayılan fiyat
+                }
+                return 0;
+              })(),
+              scdw: (() => {
+                const priceValue = apiCar.SCDW_Price || apiCar.scdw_Price || apiCar.SCDW_Price_Day || apiCar.scdw_Price_Day;
+                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
+                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
+                  if (!isNaN(parsed) && parsed > 0) return parsed;
+                }
+                const flagValue = apiCar.SCDW || apiCar.scdw;
+                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
+                  return 25; // Varsayılan fiyat
+                }
+                return 0;
+              })(),
+              lcf: (() => {
+                const priceValue = apiCar.LCF_Price || apiCar.lcf_Price || apiCar.LCF_Price_Day || apiCar.lcf_Price_Day;
+                if (priceValue !== undefined && priceValue !== null && priceValue !== '') {
+                  const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : priceValue;
+                  if (!isNaN(parsed) && parsed > 0) return parsed;
+                }
+                const flagValue = apiCar.LCF || apiCar.lcf;
+                if (flagValue === 'ON' || flagValue === 'on' || flagValue === true) {
+                  return 15; // Varsayılan fiyat
+                }
+                return 0;
+              })()
+            }
           };
         });
       }
