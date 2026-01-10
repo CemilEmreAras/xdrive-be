@@ -555,8 +555,9 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
             // Baby_Seat, Navigation, Additional_Driver, CDW, SCDW, LCF alanları TOPLAM fiyat döndürüyor (günlük değil)
             // -1 değeri satışa sunulmamış anlamına geliyor
             // Gün sayısına bölerek günlük fiyatı hesaplıyoruz
-            const days = apiCar.Days || apiCar.days || 1;
-            extras: {
+            extras: (() => {
+              const days = apiCar.Days || apiCar.days || 1;
+              return {
               babySeat: (() => {
                 const totalPrice = apiCar.Baby_Seat || apiCar.baby_Seat;
                 if (totalPrice === undefined || totalPrice === null || totalPrice === '' || totalPrice === -1) return 0;
@@ -600,7 +601,8 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 if (isNaN(parsed) || parsed <= 0) return 0;
                 return days > 0 ? parsed / days : parsed;
               })()
-            }
+              };
+            })()
           };
         });
       }
