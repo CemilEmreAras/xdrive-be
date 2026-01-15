@@ -55,18 +55,45 @@ const getAvailableCars = async (params) => {
       currency = 'EURO'
     } = params;
 
+    // Parametre validasyonu
+    if (!pickupId || pickupId === '' || pickupId === null || pickupId === undefined) {
+      throw new Error('Pickup_ID parametresi eksik veya geçersiz');
+    }
+    
+    if (!dropoffId || dropoffId === '' || dropoffId === null || dropoffId === undefined) {
+      throw new Error('Drop_Off_ID parametresi eksik veya geçersiz');
+    }
+    
+    if (!pickupDate || !dropoffDate) {
+      throw new Error('Tarih parametreleri eksik');
+    }
+
     // Tarihi parse et
     const pickup = new Date(pickupDate);
     const dropoff = new Date(dropoffDate);
+    
+    // Tarih validasyonu
+    if (isNaN(pickup.getTime()) || isNaN(dropoff.getTime())) {
+      throw new Error('Geçersiz tarih formatı');
+    }
 
     const url = `${API_CONFIG.BASE_URL}/JsonRez.aspx`;
+    
+    // Debug: Gönderilecek parametreleri logla
+    console.log('📤 External API\'ye gönderilecek parametreler:', {
+      Pickup_ID: String(pickupId),
+      Drop_Off_ID: String(dropoffId),
+      Pickup_Date: pickupDate,
+      Dropoff_Date: dropoffDate
+    });
+    
     const response = await axios.get(url, {
       params: {
         Key_Hack: API_CONFIG.KEY_HACK,
         User_Name: API_CONFIG.USER_NAME,
         User_Pass: API_CONFIG.USER_PASS,
-        Pickup_ID: pickupId,
-        Drop_Off_ID: dropoffId,
+        Pickup_ID: String(pickupId), // String'e çevir
+        Drop_Off_ID: String(dropoffId), // String'e çevir
         Pickup_Day: String(pickup.getDate()).padStart(2, '0'),
         Pickup_Month: String(pickup.getMonth() + 1).padStart(2, '0'),
         Pickup_Year: pickup.getFullYear(),
