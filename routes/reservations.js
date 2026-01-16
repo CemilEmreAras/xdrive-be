@@ -20,9 +20,9 @@ router.post('/', async (req, res) => {
       groupId: initialGroupId, // API'den gelen Group_ID
       extras = {}, // CDW, SCDW, LCF, Baby_Seat, Navigation, Additional_Driver
       basePrice, // Frontend'den gelen temel fiyat
-      commission, // Frontend'den gelen komisyon (%10)
-      totalPrice: frontendTotalPrice, // Frontend'den gelen toplam fiyat (araç + komisyon)
-      paymentAmount, // Frontend'den gelen ödenecek tutar (sadece komisyon)
+      commission,
+      totalPrice: frontendTotalPrice,
+      paymentAmount,
       currency, // Para birimi
       days: frontendDays // Frontend'den gelen gün sayısı
     } = req.body;
@@ -80,13 +80,13 @@ router.post('/', async (req, res) => {
       }
     }
     
-    // Komisyon hesaplama (%10)
+    // Fee calculation
     const calculatedCommission = commission || (calculatedBasePrice * 0.10);
     
-    // Toplam fiyat (araç + komisyon)
+    // Total price
     const totalPrice = frontendTotalPrice || (calculatedBasePrice + calculatedCommission);
     
-    // Ödenecek tutar (sadece komisyon)
+    // Payment amount
     const calculatedPaymentAmount = paymentAmount || calculatedCommission;
 
     // Gerçek API'ye rezervasyon gönder (PDF formatına göre - ZORUNLU)
@@ -458,13 +458,13 @@ router.put('/:reservationNumber/cancel', async (req, res) => {
       return res.status(404).json({ error: 'Rezervasyon bulunamadı' });
     }
 
-    // 48 saat kontrolü
+    // 72 saat kontrolü
     const pickupDate = new Date(reservation.pickupDate);
     const now = new Date();
     const hoursUntilPickup = (pickupDate - now) / (1000 * 60 * 60);
 
-    if (hoursUntilPickup < 48) {
-      return res.status(400).json({ error: 'Rezervasyon sadece 48 saat öncesine kadar iptal edilebilir' });
+    if (hoursUntilPickup < 72) {
+      return res.status(400).json({ error: 'Rezervasyon sadece 72 saat öncesine kadar iptal edilebilir' });
     }
 
     // Eğer external API'de rezervasyon varsa, orada da iptal et

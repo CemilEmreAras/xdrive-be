@@ -182,14 +182,16 @@ router.get('/meta/categories', async (req, res) => {
 // Belirli bir araç getir (EN SONA - çünkü /:id her şeyi yakalar)
 router.get('/:id', async (req, res) => {
   try {
+    const carId = req.params.id;
+    
     // Önce veritabanından kontrol et (MongoDB varsa)
     try {
       const Car = require('../models/Car');
-      let car = await Car.findById(req.params.id);
+      let car = await Car.findById(carId);
       
       // Eğer bulunamazsa, externalId ile ara
       if (!car) {
-        car = await Car.findOne({ externalId: req.params.id });
+        car = await Car.findOne({ externalId: carId });
       }
       
       if (car) {
@@ -199,16 +201,54 @@ router.get('/:id', async (req, res) => {
       // MongoDB yoksa veya hata varsa devam et
     }
     
-    // Veritabanında bulunamazsa, external API'den çek (bu durumda ID'yi rezId olarak kullan)
-    // Not: Bu endpoint için external API'de direkt araç getirme yok, 
-    // bu yüzden 404 döndürüyoruz
-    // Ancak daha açıklayıcı bir mesaj verelim
-    console.warn(`⚠️ Araç bulunamadı: ID=${req.params.id}`);
+    // Eğer ID rezId formatındaysa (XML- ile başlıyorsa) ve query parametrelerinde tarih/lokasyon varsa,
+    // external API'den araç listesini çekip rezId'ye göre filtrele
+    if (carId.startsWith('XML-') && req.query.pickupId && req.query.dropoffId && req.query.pickupDate && req.query.dropoffDate) {
+      try {
+        console.log(`🔍 RezId ile araç aranıyor: ${carId}`);
+        console.log('Query parametreleri:', req.query);
+        
+        const cars = await fetchCarsFromExternalAPI({
+          pickupId: req.query.pickupId,
+          dropoffId: req.query.dropoffId,
+          pickupDate: req.query.pickupDate,
+          dropoffDate: req.query.dropoffDate,
+          pickupHour: parseInt(req.query.pickupHour) || 10,
+          pickupMin: parseInt(req.query.pickupMin) || 0,
+          dropoffHour: parseInt(req.query.dropoffHour) || 10,
+          dropoffMin: parseInt(req.query.dropoffMin) || 0,
+          currency: req.query.currency || 'EURO'
+        });
+        
+        // RezId'ye göre araç bul
+        const foundCar = cars.find(car => {
+          const carRezId = car.rezId || car.Rez_ID || car.rez_ID || car.RezID || car.rezID;
+          return carRezId === carId || String(carRezId) === String(carId);
+        });
+        
+        if (foundCar) {
+          console.log(`✅ Araç bulundu: ${carId}`);
+          return res.json(foundCar);
+        } else {
+          console.warn(`⚠️ RezId ile araç bulunamadı: ${carId}`);
+          console.warn(`Toplam ${cars.length} araç kontrol edildi`);
+        }
+      } catch (apiError) {
+        console.error('❌ External API hatası:', apiError.message);
+        // API hatası olsa bile devam et, 404 döndür
+      }
+    }
+    
+    // Veritabanında bulunamazsa ve rezId ile de bulunamazsa, 404 döndür
+    console.warn(`⚠️ Araç bulunamadı: ID=${carId}`);
     console.warn('Not: Car objesi state ile geçirilmeli (CarList -> CarDetail -> Reservation)');
+    console.warn('Veya query parametrelerinde pickupId, dropoffId, pickupDate, dropoffDate olmalı');
     return res.status(404).json({ 
       error: 'Araç bulunamadı',
       details: 'Lütfen araç listesinden seçin. Car objesi state ile geçirilmeli.',
-      hint: 'MongoDB kullanılmıyorsa, car objesi frontend state ile geçirilmelidir.'
+      hint: carId.startsWith('XML-') 
+        ? 'RezId ile araç getirmek için query parametrelerinde pickupId, dropoffId, pickupDate, dropoffDate gerekli.'
+        : 'MongoDB kullanılmıyorsa, car objesi frontend state ile geçirilmelidir.'
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

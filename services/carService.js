@@ -561,6 +561,7 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
               
               // Services array'inden extras verilerini parse et
               const extrasFromServices = {};
+              const extrasMetadata = {}; // title ve description için
               
               // Debug: İlk araç için Services array'ini logla
               if (availableCars.indexOf(car) === 0) {
@@ -581,6 +582,12 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   
                   const serviceName = service.service_name.toLowerCase();
                   const totalPriceStr = service.service_total_price || '0';
+                  // service_name'den title ve description oluştur
+                  const serviceNameOriginal = service.service_name || '';
+                  const serviceTitle = serviceNameOriginal
+                    .replace(/_/g, ' ') // Alt çizgiyi boşlukla değiştir
+                    .replace(/\b\w/g, l => l.toUpperCase()); // İlk harfleri büyük yap
+                  const serviceDesc = service.service_desc || '';
                   
                   // Fiyat string'ini parse et (virgülü noktaya çevir: "80,09" -> "80.09")
                   const totalPrice = parseFloat(totalPriceStr.replace(',', '.'));
@@ -590,6 +597,8 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                     console.log(`  Service ${index + 1}:`, {
                       service_name: service.service_name,
                       service_name_lower: serviceName,
+                      service_title_from_name: serviceTitle,
+                      service_desc: serviceDesc,
                       service_total_price: totalPriceStr,
                       parsed_total_price: totalPrice,
                       days: days,
@@ -598,44 +607,51 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   }
                   
                   if (!isNaN(totalPrice) && totalPrice > 0) {
-                    // Günlük fiyatı hesapla
+                    // Günlük fiyatı hesapla (toplam fiyat / gün sayısı)
                     const dailyPrice = days > 0 ? totalPrice / days : totalPrice;
                     
                     // Service name'e göre mapping
                     if (serviceName === 'baby_seat' || serviceName === 'babyseat') {
                       extrasFromServices.babySeat = dailyPrice;
+                      extrasMetadata.babySeat = { title: serviceTitle, description: serviceDesc };
                       if (availableCars.indexOf(car) === 0) {
-                        console.log('  ✅ Baby_Seat mapped to babySeat:', dailyPrice);
+                        console.log('  ✅ Baby_Seat mapped to babySeat:', dailyPrice, 'title:', serviceTitle);
                       }
                     } else if (serviceName === 'addition_drive' || serviceName === 'additional_driver' || serviceName === 'additionaldriver') {
                       extrasFromServices.additionalDriver = dailyPrice;
+                      extrasMetadata.additionalDriver = { title: serviceTitle, description: serviceDesc };
                       if (availableCars.indexOf(car) === 0) {
-                        console.log('  ✅ Addition_Drive mapped to additionalDriver:', dailyPrice);
+                        console.log('  ✅ Addition_Drive mapped to additionalDriver:', dailyPrice, 'title:', serviceTitle);
                       }
                     } else if (serviceName === 'navigation' || serviceName === 'gps') {
                       extrasFromServices.navigation = dailyPrice;
+                      extrasMetadata.navigation = { title: serviceTitle, description: serviceDesc };
                       if (availableCars.indexOf(car) === 0) {
-                        console.log('  ✅ Navigation mapped to navigation:', dailyPrice);
+                        console.log('  ✅ Navigation mapped to navigation:', dailyPrice, 'title:', serviceTitle);
                       }
                     } else if (serviceName === 'cdw') {
                       extrasFromServices.cdw = dailyPrice;
+                      extrasMetadata.cdw = { title: serviceTitle, description: serviceDesc };
                       if (availableCars.indexOf(car) === 0) {
-                        console.log('  ✅ CDW mapped to cdw:', dailyPrice);
+                        console.log('  ✅ CDW mapped to cdw:', dailyPrice, 'title:', serviceTitle);
                       }
                     } else if (serviceName === 'scdw') {
                       extrasFromServices.scdw = dailyPrice;
+                      extrasMetadata.scdw = { title: serviceTitle, description: serviceDesc };
                       if (availableCars.indexOf(car) === 0) {
-                        console.log('  ✅ SCDW mapped to scdw:', dailyPrice);
+                        console.log('  ✅ SCDW mapped to scdw:', dailyPrice, 'title:', serviceTitle);
                       }
                     } else if (serviceName === 'lcf') {
                       extrasFromServices.lcf = dailyPrice;
+                      extrasMetadata.lcf = { title: serviceTitle, description: serviceDesc };
                       if (availableCars.indexOf(car) === 0) {
-                        console.log('  ✅ LCF mapped to lcf:', dailyPrice);
+                        console.log('  ✅ LCF mapped to lcf:', dailyPrice, 'title:', serviceTitle);
                       }
                     } else if (serviceName === 'young_driver' || serviceName === 'youngdriver') {
                       extrasFromServices.youngDriver = dailyPrice;
+                      extrasMetadata.youngDriver = { title: serviceTitle, description: serviceDesc };
                       if (availableCars.indexOf(car) === 0) {
-                        console.log('  ✅ Young_Driver mapped to youngDriver:', dailyPrice);
+                        console.log('  ✅ Young_Driver mapped to youngDriver:', dailyPrice, 'title:', serviceTitle);
                       }
                     } else {
                       if (availableCars.indexOf(car) === 0) {
@@ -652,6 +668,7 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                 // Debug: İlk araç için parse edilen extras'ları logla
                 if (availableCars.indexOf(car) === 0) {
                   console.log('  ✅ Parsed extras from Services:', extrasFromServices);
+                  console.log('  ✅ Extras metadata:', extrasMetadata);
                 }
               } else {
                 if (availableCars.indexOf(car) === 0) {
@@ -704,7 +721,9 @@ const fetchCarsFromExternalAPI = async (params = {}) => {
                   if (isNaN(parsed) || parsed <= 0) return 0;
                   return days > 0 ? parsed / days : parsed;
                 })(),
-                youngDriver: extrasFromServices.youngDriver || 0
+                youngDriver: extrasFromServices.youngDriver || 0,
+                // Metadata (title ve description) ekle
+                metadata: extrasMetadata
               };
             })()
           };
