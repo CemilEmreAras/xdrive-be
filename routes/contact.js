@@ -24,7 +24,10 @@ router.post('/', async (req, res) => {
         });
     } catch (error) {
         console.error('Contact error:', error);
-        res.status(500).json({ error: 'Mesaj gönderilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.' });
+        res.status(500).json({
+            error: 'Mesaj gönderilirken bir hata oluştu.',
+            details: error.message // Debug için
+        });
     }
 });
 
@@ -50,7 +53,10 @@ router.post('/franchise', async (req, res) => {
         });
     } catch (error) {
         console.error('Franchise error:', error);
-        res.status(500).json({ error: 'Başvuru gönderilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.' });
+        res.status(500).json({
+            error: 'Başvuru gönderilirken bir hata oluştu.',
+            details: error.message // Debug için
+        });
     }
 });
 

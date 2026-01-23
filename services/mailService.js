@@ -21,7 +21,8 @@ const createTransporter = () => {
         },
         tls: {
             // Production'da güvenlik için sertifika kontrolünü aç, development'ta kapat
-            rejectUnauthorized: process.env.NODE_ENV === 'production'
+            // GEÇİCİ DEBUG: Production'da da kapatıp deneyelim (sertifika hatası ihtimaline karşı)
+            rejectUnauthorized: false // process.env.NODE_ENV === 'production'
         }
     });
 };
