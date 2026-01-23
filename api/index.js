@@ -83,12 +83,18 @@ app.get('/', (req, res) => {
 app.use('/api/cars', require('../routes/cars'));
 app.use('/api/reservations', require('../routes/reservations'));
 app.use('/api/auth', require('../routes/auth'));
+app.use('/api/images', require('../routes/images'));
+app.use('/api/payments', require('../routes/payments'));
+app.use('/api/contact', require('../routes/contact'));
 
 // Fallback: Eğer path /api olmadan gelirse (normalize edilmişse bile)
 // Bu route'lar da çalışacak
 app.use('/cars', require('../routes/cars'));
 app.use('/reservations', require('../routes/reservations'));
 app.use('/auth', require('../routes/auth'));
+app.use('/images', require('../routes/images'));
+app.use('/payments', require('../routes/payments'));
+app.use('/contact', require('../routes/contact'));
 
 // 404 handler - tüm route'lardan sonra
 app.use((req, res) => {
