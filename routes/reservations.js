@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { saveReservation, cancelReservation } = require('../services/externalApiService');
-const { addReservedCar, removeReservedCar } = require('../services/reservationCache');
+const { addReservedCar, removeReservedCar, getReservedCarsForDateRange } = require('../services/reservationCache');
 
 // Rezervasyon oluştur
 router.post('/', async (req, res) => {
@@ -205,6 +205,24 @@ router.post('/', async (req, res) => {
         dropoffMin = 0;
       }
 
+      // Check for concurrent reservations (Double Booking Prevention)
+      if (rezId && carsParkId) {
+        const conflictingReservations = getReservedCarsForDateRange(pickupDate, dropoffDate);
+        const isConflict = conflictingReservations.some(r =>
+          String(r.rezId) === String(rezId) &&
+          String(r.carsParkId) === String(carsParkId)
+        );
+
+        if (isConflict) {
+          console.warn(`⚠️ CONFLICT DETECTED: Car ${rezId}/${carsParkId} is already booked for ${pickupDate} - ${dropoffDate}`);
+          return res.status(409).json({
+            error: 'Bu araç seçilen tarihlerde maalesef az önce kiralandı.',
+            details: 'Lütfen başka bir araç seçiniz veya tarihlerinizi güncelleyiniz.',
+            code: 'CAR_ALREADY_BOOKED'
+          });
+        }
+      }
+
       // External API'ye rezervasyon gönder (PDF formatına göre)
       // Debug log (Sadece development'ta)
       if (process.env.NODE_ENV !== 'production') {
@@ -269,16 +287,22 @@ router.post('/', async (req, res) => {
         externalRezIdFromResponse = firstItem.rez_id || firstItem.Rez_ID || firstItem.rezId;
         externalIdFromResponse = firstItem.ID || firstItem.id;
 
-        // rez_kayit_no kontrolü
+        // rez_kayit_no ve success kontrolü
         const rezKayitNo = firstItem.rez_kayit_no || firstItem.Rez_Kayit_No || firstItem.rezKayitNo;
+        const success = String(firstItem.success || firstItem.Success || 'False').toLowerCase();
+
+        if (success === 'false') {
+          console.error('❌ External API rezerve edilemedi (success: False)');
+          console.error('❌ Yanıt:', firstItem);
+          throw new Error('Bu araç maalesef az önce kiralandı veya artık müsait değil. (API: False)');
+        }
+
         if (rezKayitNo === '0' || rezKayitNo === 0) {
-          if (externalRezIdFromResponse) {
-            console.warn('⚠️ External API uyarısı: success: False ve rez_kayit_no: 0, ancak rez_id döndü.');
-            console.warn('⚠️ Rezervasyonun External API tarafında onay bekliyor olabilir.');
+          if (externalRezIdFromResponse && success === 'true') {
+            console.warn('⚠️ External API uyarısı: success: True ve rez_kayit_no: 0, ancak rez_id döndü.');
           } else {
             console.error('❌ External API rezervasyon kaydedilemedi (rez_kayit_no: 0)');
-            console.error('❌ Rezervasyon türevde görünmeyecek!');
-            throw new Error('Rezervasyon external API\'de kaydedilemedi. Lütfen API sağlayıcısı ile iletişime geçin: 0312 870 10 35');
+            throw new Error('Rezervasyon external API\'de kaydedilemedi. (Kayit No: 0)');
           }
         }
 
@@ -328,9 +352,13 @@ router.post('/', async (req, res) => {
       }
       console.error('API Error Stack:', apiError.stack);
 
-      // External API hatası - rezervasyon türevde görünmeyebilir
-      // Ama rezervasyon yine de kaydedilecek (local ve cache)
-      // Hata fırlatma, sadece warning olarak işaretle
+      // Eğer API reddettiyse (False döndüyse), işlemi durdur ve hata fırlat
+      if (apiError.message.includes('(API: False)') || apiError.message.includes('(Kayit No: 0)') || apiError.message.includes('External API Rezervasyon Hatası')) {
+        throw apiError;
+      }
+
+      // Diğer hatalarda (Network vs) warning ver ama devam et (eski mantık korunuyor)
+      // Ancak success: False durumu kesinlikle yukarida yakalanmali
       externalReservation = null;
       externalRezId = null;
       console.warn('⚠️ External API hatası nedeniyle rezervasyon türevde görünmeyebilir, ancak yerel rezervasyon kaydedilecek');
@@ -419,8 +447,15 @@ router.post('/', async (req, res) => {
     let errorMessage = error.message || 'Rezervasyon oluşturulurken bir hata oluştu';
     let statusCode = 500;
 
-    // Eğer external API hatası ise, 400 döndür (client error)
-    if (error.message && error.message.includes('External API')) {
+    // Eğer araç müsait değilse (API reddetti), 409 döndür
+    if (errorMessage.includes('(API: False)') ||
+      errorMessage.includes('(Kayit No: 0)') ||
+      errorMessage.includes('Kayıt Hatası') ||
+      errorMessage.includes('no longer available')) {
+      statusCode = 409;
+    }
+    // Eğer external API hatası ise (ve yukarıdaki konflikt değilse), 400 döndür
+    else if (errorMessage.includes('External API')) {
       statusCode = 400;
     }
 
