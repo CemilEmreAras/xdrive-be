@@ -330,20 +330,8 @@ router.post('/', async (req, res) => {
         }
       } else {
         // Boş yanıt veya beklenmedik format
-        if (!externalReservation ||
-          (typeof externalReservation === 'string' && externalReservation.trim() === '') ||
-          (Array.isArray(externalReservation) && externalReservation.length === 0)) {
-          console.warn('⚠️ External API boş yanıt döndü');
-          console.warn('⚠️ Rezervasyon gönderildi ama onay yanıtı alınamadı');
-          console.warn('⚠️ Rezervasyon türevde görünmeyebilir, ancak yerel rezervasyon kaydedilecek');
-          externalReservation = null;
-          externalRezId = null;
-        } else {
-          console.warn('⚠️ External API rezervasyon yanıtı beklenmedik format:', externalReservation);
-          console.warn('⚠️ Rezervasyon türevde görünmeyebilir, ancak yerel rezervasyon kaydedilecek');
-          externalReservation = null;
-          externalRezId = null;
-        }
+        console.error('❌ External API geçerli bir rezervasyon numarası döndürmedi.');
+        throw new Error('Rezervasyon numarası oluşturulamadı (External API yanıt vermedi). Lütfen tekrar deneyiniz.');
       }
     } catch (apiError) {
       console.error('⚠️ External API rezervasyon hatası:', apiError.message);
@@ -367,7 +355,12 @@ router.post('/', async (req, res) => {
     // MongoDB kaldırıldığı için local kayıt yapılmıyor.
     // console.log('MongoDB yok, rezervasyon sadece external API\'ye kaydedildi');
 
-    // Rezervasyon numarası oluştur
+    // Verify externalRezId exists
+    if (!externalRezId) {
+      throw new Error('Rezervasyon numarası doğrulanamadı.');
+    }
+
+    // Rezervasyon numarası oluştur (Internal use only, but user sees externalRezId)
     const reservationNumber = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     // Rezervasyon bilgilerini hazırla
